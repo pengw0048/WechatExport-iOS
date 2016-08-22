@@ -310,20 +310,15 @@ namespace WechatExport
                 foreach (var chat in chats)
                 {
                     var hash = chat;
-                    if (!friends.ContainsKey(hash))
+                    string displayname = chat, id = displayname;
+                    if (friends.ContainsKey(hash))
                     {
-                        AddLog("找不到好友" + hash + "，跳过");
-                        continue;
+                        var friend = friends[hash];
+                        displayname = friend.DisplayName();
+                        AddLog("处理与" + displayname + "的对话");
+                        id = friend.ID();
                     }
-                    var friend = friends[hash];
-                    var displayname = friend.DisplayName();
-                    AddLog("处理与" + displayname + "的对话");
-                    var id = friend.ID();
-                    if (displayname == null || id == null || displayname == "" || id == "")
-                    {
-                        AddLog("朋友信息异常，跳过");
-                        continue;
-                    }
+                    else AddLog("未找到好友信息，用默认名字代替");
                     int count;
                     if (wechat.SaveTextRecord(conn, Path.Combine(userSaveBase, id + ".txt"), displayname, username, id, chat, out count)) AddLog("成功处理"+count+"条");
                     else AddLog("失败");
