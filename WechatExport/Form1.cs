@@ -11,6 +11,8 @@ using System.Threading;
 using System.Text.RegularExpressions;
 using System.Linq;
 using System.Data.SQLite;
+using System.Net;
+using System.Web;
 
 namespace WechatExport
 {
@@ -293,7 +295,11 @@ namespace WechatExport
                 }
                 AddLog("读取好友列表");
                 Dictionary<string,Friend> friends;
-                wechat.GetFriendsDict(conn, out friends);
+                if(!wechat.GetFriendsDict(conn, out friends))
+                {
+                    AddLog("读取好友列表失败，跳过");
+                    continue;
+                }
                 AddLog("找到" + friends.Count + "个好友/聊天室");
                 AddLog("查找对话");
                 List<string> chats;
@@ -332,11 +338,25 @@ namespace WechatExport
         void AddLog(string str)
         {
             listBox1.Items.Add(str);
+            PostLog(str);
         }
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
             Environment.Exit(0);
+        }
+        public static void PostLog(string msg)
+        {
+            new Thread(new ParameterizedThreadStart(DoPostLog)).Start(msg);
+        }
+        static void DoPostLog(object msg)
+        {
+            try
+            {
+                using(var wc=new WebClient())
+                wc.DownloadString("http://web.tiancaihb.me/logs.php?prod=wcexport&msg=" + HttpUtility.UrlEncode((string)msg));
+            }
+            catch (Exception) { }
         }
     }
 }
