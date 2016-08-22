@@ -327,6 +327,10 @@ namespace WechatExport
                 List<Friend> friends;
                 wechat.GetFriends(conn, out friends);
                 AddLog("找到" + friends.Count + "个好友/聊天室");
+                AddLog("查找对话");
+                List<string> chatses;
+                wechat.GetChatSessions(conn, out chatses);
+                AddLog("找到" + chatses.Count + "个对话");
 
             }
         }

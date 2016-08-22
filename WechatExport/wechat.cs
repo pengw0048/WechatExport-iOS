@@ -92,9 +92,37 @@ namespace WechatExport
                                 friend.ConRemark = reader.GetString(3);
                                 friend.ConChatRoomMem = reader.GetString(4);
                                 friend.ConStrRes2 = reader.GetString(5);
+                                friend.ProcessFields();
                                 friends.Add(friend);
                             }
-                            catch (Exception ex) { }
+                            catch (Exception) { }
+                    }
+                }
+                succ = true;
+            }
+            catch (Exception) { }
+            return succ;
+        }
+
+        public bool GetChatSessions(SQLiteConnection conn, out List<string> sessions)
+        {
+            bool succ = false;
+            sessions = new List<string>();
+            try
+            {
+                using(var cmd=new SQLiteCommand(conn))
+                {
+                    cmd.CommandText = "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name";
+                    using(var reader = cmd.ExecuteReader())
+                    {
+                        while(reader.Read())
+                            try
+                            {
+                                var name = reader.GetString(0);
+                                var match = Regex.Match(name, @"^Chat_[0-9a-f]{32}$");
+                                if (match.Success) sessions.Add(match.Groups[1].Value);
+                            }
+                            catch (Exception) { }
                     }
                 }
                 succ = true;
@@ -154,5 +182,12 @@ namespace WechatExport
         public string ConRemark;
         public string ConChatRoomMem;
         public string ConStrRes2;
+
+        public string alias;
+        public void ProcessFields()
+        {
+            var match = Regex.Match(ConStrRes2, @"<alias>(.*?)<\/alias>");
+            alias = match.Success ? match.Groups[1].Value : "";
+        }
     }
 }
