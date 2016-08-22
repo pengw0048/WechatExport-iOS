@@ -36,14 +36,21 @@ namespace WechatExport
             comboBox1.Items.Clear();
             string s = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
             s = Path.Combine(s, "Apple Computer", "MobileSync", "Backup");
-            DirectoryInfo d = new DirectoryInfo(s);
-            foreach (DirectoryInfo sd in d.EnumerateDirectories())
+            try
             {
-                LoadManifest(sd.FullName);
+                DirectoryInfo d = new DirectoryInfo(s);
+                foreach (DirectoryInfo sd in d.EnumerateDirectories())
+                {
+                    LoadManifest(sd.FullName);
+                }
+                foreach (iPhoneBackup b in backups)
+                {
+                    b.index = comboBox1.Items.Add(b);
+                }
             }
-            foreach (iPhoneBackup b in backups)
+            catch (Exception)
             {
-                b.index = comboBox1.Items.Add(b);
+                MessageBox.Show("没有找到iTunes备份文件夹，可能需要手动选择。");
             }
             comboBox1.Items.Add("<选择其他备份文件夹...>");
         }
@@ -223,20 +230,15 @@ namespace WechatExport
             fd.Filter = "iPhone Backup|Info.plist|All files (*.*)|*.*";
             fd.FilterIndex = 1;
             fd.RestoreDirectory = true;
-
             if (fd.ShowDialog() == DialogResult.OK)
             {
                 beforeLoadManifest();
                 iPhoneBackup b = LoadManifest(Path.GetDirectoryName(fd.FileName));
-
                 if (b != null)
                 {
                     b.custom = true;
-
                     comboBox1.Items.Insert(comboBox1.Items.Count - 1, b);
-
                     b.index = comboBox1.Items.Count - 2;
-
                     comboBox1.SelectedIndex = b.index;
                 }
             }
