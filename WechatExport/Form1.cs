@@ -300,37 +300,40 @@ namespace WechatExport
         {
             var saveBase = textBox1.Text;
             Directory.CreateDirectory(saveBase);
-            addLog("分析文件夹结构");
+            AddLog("分析文件夹结构");
             wechat = new WeChatInterface(currentBackup, files92);
-            wechat.buildFilesDictionary(weixinapp);
-            addLog("查找UID");
-            var UIDs = wechat.findUIDs();
-            addLog("找到" + UIDs.Count + "个账号的消息记录");
+            wechat.BuildFilesDictionary(weixinapp);
+            AddLog("查找UID");
+            var UIDs = wechat.FindUIDs();
+            AddLog("找到" + UIDs.Count + "个账号的消息记录");
             foreach (var uid in UIDs)
             {
                 var userBase = Path.Combine("Documents", uid);
-                addLog("开始处理UID: " + uid);
-                addLog("读取账号信息");
+                AddLog("开始处理UID: " + uid);
+                AddLog("读取账号信息");
                 string userid, username;
-                if (wechat.getUserBasics(uid, userBase, out userid, out username)) addLog("微信号：" + userid + " 昵称：" + username);
-                else addLog("没有找到本人信息，用默认值替代");
+                if (wechat.GetUserBasics(uid, userBase, out userid, out username)) AddLog("微信号：" + userid + " 昵称：" + username);
+                else AddLog("没有找到本人信息，用默认值替代");
                 var userSaveBase = Path.Combine(saveBase, userid);
                 Directory.CreateDirectory(userSaveBase);
-                addLog("正在打开数据库");
+                AddLog("正在打开数据库");
                 SQLiteConnection conn;
-                if (!wechat.openMMSqlite(userBase, out conn))
+                if (!wechat.OpenMMSqlite(userBase, out conn))
                 {
-                    addLog("打开MM.sqlite失败，跳过");
+                    AddLog("打开MM.sqlite失败，跳过");
                     continue;
                 }
-                addLog("读取好友列表");
+                AddLog("读取好友列表");
+                List<Friend> friends;
+                wechat.GetFriends(conn, out friends);
+                AddLog("找到" + friends.Count + "个好友/聊天室");
 
             }
         }
 
 
 
-        void addLog(string str)
+        void AddLog(string str)
         {
             listBox1.Items.Add(str);
         }
