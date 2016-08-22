@@ -9,6 +9,7 @@ using System.Collections;
 using System.Text.RegularExpressions;
 using System.Linq;
 using System.Data.SQLite;
+using System.Text;
 
 namespace WechatExport
 {
@@ -104,6 +105,27 @@ namespace WechatExport
             return succ;
         }
 
+        public bool GetFriendsDict(SQLiteConnection conn, out Dictionary<string,Friend> friends)
+        {
+            List<Friend> _friends;
+            friends = new Dictionary<string, Friend>();
+            bool succ = GetFriends(conn, out _friends);
+            if (succ)
+            {
+                foreach (var friend in _friends)
+                {
+                    friends.Add(friend.UsrName, friend);
+                    friends.Add(CreateMD5(friend.UsrName), friend);
+                    if (friend.alias != null && friend.alias != "" && !friends.ContainsKey(friend.alias))
+                    {
+                        friends.Add(friend.alias, friend);
+                        friends.Add(CreateMD5(friend.alias), friend);
+                    }
+                }
+            }
+            return succ;
+        }
+
         public bool GetChatSessions(SQLiteConnection conn, out List<string> sessions)
         {
             bool succ = false;
@@ -119,13 +141,62 @@ namespace WechatExport
                             try
                             {
                                 var name = reader.GetString(0);
-                                var match = Regex.Match(name, @"^Chat_[0-9a-f]{32}$");
+                                var match = Regex.Match(name, @"^Chat_([0-9a-f]{32})$");
                                 if (match.Success) sessions.Add(match.Groups[1].Value);
                             }
                             catch (Exception) { }
                     }
                 }
                 succ = true;
+            }
+            catch (Exception) { }
+            return succ;
+        }
+
+        public bool SaveTextRecord(SQLiteConnection conn, string path, string displayname, string myname, string id, string table, out int count)
+        {
+            bool succ = false;
+            count = 0;
+            try
+            {
+                if (id.EndsWith("@chatroom")) return false;
+                using (var cmd = new SQLiteCommand(conn))
+                {
+                    cmd.CommandText = "SELECT CreateTime,Message,Des,Type FROM Chat_" + table;
+                    using (var reader = cmd.ExecuteReader())
+                    using (var sw = new StreamWriter(path))
+                    {
+                        while (reader.Read())
+                            try
+                            {
+                                var unixtime = reader.GetInt32(0);
+                                var message = reader.GetString(1);
+                                var des = reader.GetInt32(2);
+                                var type = reader.GetInt32(3);
+                                var txtsender = (type == 10000 ? "[系统消息]" : (des == 1 ? displayname : myname));
+                                if (type == 34) message = "[语音]";
+                                else if (type == 47) message = "[表情]";
+                                else if (type == 62) message = "[小视频]";
+                                else if (type == 50) message = "[视频/语音通话]";
+                                else if (type == 3) message = "[图片]";
+                                else if (type == 49)
+                                {
+                                    if (message.Contains("微信红包")) message = "[红包]";
+                                    else if (message.Contains("微信转账")) message = "[转账]";
+                                    else if (message.Contains("我发起了位置共享")) message = "[位置共享]";
+                                    else if (message.Contains("<appattach>")) message = "[文件]";
+                                    else message = "链接";
+                                }
+                                else if (type == 42) message = "[名片]";
+
+                                sw.WriteLine(txtsender + "(" + FromUnixTime(unixtime).ToLongTimeString() + ")" + ": " + message);
+                                count++;
+
+                            }
+                            catch (Exception) { }
+                    }
+                    succ = true;
+                }
             }
             catch (Exception) { }
             return succ;
@@ -172,6 +243,29 @@ namespace WechatExport
             return UIDs.ToList();
         }
 
+        public static string CreateMD5(string input)
+        {
+            // Use input string to calculate MD5 hash
+            using (System.Security.Cryptography.MD5 md5 = System.Security.Cryptography.MD5.Create())
+            {
+                byte[] inputBytes = System.Text.Encoding.ASCII.GetBytes(input);
+                byte[] hashBytes = md5.ComputeHash(inputBytes);
+
+                // Convert the byte array to hexadecimal string
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < hashBytes.Length; i++)
+                {
+                    sb.Append(hashBytes[i].ToString("x2"));
+                }
+                return sb.ToString();
+            }
+        }
+
+        public static DateTime FromUnixTime(long unixTime)
+        {
+            var epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            return epoch.AddSeconds(unixTime);
+        }
     }
 
     public class Friend
@@ -188,6 +282,19 @@ namespace WechatExport
         {
             var match = Regex.Match(ConStrRes2, @"<alias>(.*?)<\/alias>");
             alias = match.Success ? match.Groups[1].Value : "";
+        }
+        public string DisplayName()
+        {
+            if (ConRemark != null && ConRemark != "") return ConRemark;
+            if (NickName != null && NickName != "") return NickName;
+            if (UsrName != null && UsrName != "") return UsrName;
+            return null;
+        }
+        public string ID()
+        {
+            if (alias != null && alias != "") return alias;
+            if (UsrName != null && UsrName != "") return UsrName;
+            return null;
         }
     }
 }

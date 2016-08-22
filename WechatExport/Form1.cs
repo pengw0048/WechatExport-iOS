@@ -27,45 +27,36 @@ namespace WechatExport
             InitializeComponent();
             CheckForIllegalCrossThreadCalls = false;
         }
+
         private void LoadManifests()
         {
             backups.Clear();
             comboBox1.Items.Clear();
-
             string s = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-
             s = Path.Combine(s, "Apple Computer", "MobileSync", "Backup");
-
             DirectoryInfo d = new DirectoryInfo(s);
-
             foreach (DirectoryInfo sd in d.EnumerateDirectories())
             {
                 LoadManifest(sd.FullName);
             }
-
             foreach (iPhoneBackup b in backups)
             {
                 b.index = comboBox1.Items.Add(b);
             }
-
             comboBox1.Items.Add("<选择其他备份文件夹...>");
         }
+
         private iPhoneBackup LoadManifest(string path)
         {
             iPhoneBackup backup = null;
-
             string filename = Path.Combine(path, "Info.plist");
-
             try
             {
                 xdict dd = xdict.open(filename);
-
                 if (dd != null)
                 {
                     backup = new iPhoneBackup();
-
                     backup.path = path;
-
                     foreach (xdictpair p in dd)
                     {
                         if (p.item.GetType() == typeof(string))
@@ -80,7 +71,6 @@ namespace WechatExport
                             }
                         }
                     }
-
                     backups.Add(backup);
                     backups.Sort(iPhoneBackup.SortByDate);
                 }
@@ -93,21 +83,18 @@ namespace WechatExport
             {
                 MessageBox.Show(ex.ToString());
             }
-
             return backup;
         }
+
         private void loadCurrentBackup()
         {
             if (currentBackup == null)
                 return;
             
             files92 = null;
-
             try
             {
                 iPhoneBackup backup = currentBackup;
-
-                // backup iTunes 9.2+
                 if (File.Exists(Path.Combine(backup.path, "Manifest.mbdb")))
                 {
                     files92 = mbdbdump.mbdb.ReadMBDB(backup.path);
@@ -117,7 +104,6 @@ namespace WechatExport
 
                     parseAll92(er);
                 }
-
             }
             catch (InvalidOperationException ex)
             {
@@ -133,7 +119,6 @@ namespace WechatExport
         {
             public List<int> indexes = new List<int>();
             public long FilesLength = 0;
-
             public void add(int index, long length)
             {
                 indexes.Add(index);
@@ -146,9 +131,7 @@ namespace WechatExport
             var sd = mbdb["Applications"] as Dictionary<object, object>;
             if (sd == null)
                 return;
-
             var filesByDomain = new Dictionary<string, appFiles>();
-
             for (int i = 0; i < files92.Count; ++i)
             {
                 if ((files92[i].Mode & 0xF000) == 0x8000)
@@ -160,38 +143,23 @@ namespace WechatExport
                     filesByDomain[d].add(i, files92[i].FileLength);
                 }
             }
-
-
             foreach (var p in sd)
             {
                 iPhoneApp app = new iPhoneApp();
-
                 app.Key = p.Key as string;
-
                 var zz = p.Value as IDictionary;
-
-                //app.DisplayName = zz["CFBundleDisplayName"] as string;
-                //app.Name = zz["CFBundleName"] as string;
                 app.Identifier = zz["CFBundleIdentifier"] as string;
                 app.Container = zz["Path"] as string;
-
-                // il y a des applis mal paramétrées...
-                //if (app.Name == null) app.Name = app.Key;
-                //if (app.DisplayName == null) app.DisplayName = app.Name;
-
                 if (filesByDomain.ContainsKey("AppDomain-" + app.Key))
                 {
                     app.Files = new List<String>();
-
                     foreach (int i in filesByDomain["AppDomain-" + app.Key].indexes)
                     {
                         app.Files.Add(i.ToString());
                     }
                     app.FilesLength = filesByDomain["AppDomain-" + app.Key].FilesLength;
-
                     filesByDomain.Remove("AppDomain-" + app.Key);
                 }
-
                 addApp(app);
             }
         }
@@ -324,15 +292,39 @@ namespace WechatExport
                     continue;
                 }
                 AddLog("读取好友列表");
-                List<Friend> friends;
-                wechat.GetFriends(conn, out friends);
+                Dictionary<string,Friend> friends;
+                wechat.GetFriendsDict(conn, out friends);
                 AddLog("找到" + friends.Count + "个好友/聊天室");
                 AddLog("查找对话");
-                List<string> chatses;
-                wechat.GetChatSessions(conn, out chatses);
-                AddLog("找到" + chatses.Count + "个对话");
-
+                List<string> chats;
+                wechat.GetChatSessions(conn, out chats);
+                AddLog("找到" + chats.Count + "个对话");
+                foreach (var chat in chats)
+                {
+                    var hash = chat;
+                    if (!friends.ContainsKey(hash))
+                    {
+                        AddLog("找不到好友" + hash + "，跳过");
+                        continue;
+                    }
+                    var friend = friends[hash];
+                    var displayname = friend.DisplayName();
+                    AddLog("处理与" + displayname + "的对话");
+                    var id = friend.ID();
+                    if (displayname == null || id == null || displayname == "" || id == "")
+                    {
+                        AddLog("朋友信息异常，跳过");
+                        continue;
+                    }
+                    int count;
+                    if (wechat.SaveTextRecord(conn, Path.Combine(userSaveBase, id + ".txt"), displayname, username, id, chat, out count)) AddLog("成功处理"+count+"条");
+                    else AddLog("失败");
+                }
+                AddLog("完成当前账号");
             }
+            AddLog("任务结束");
+            MessageBox.Show("处理完成");
+            //Environment.Exit(0);
         }
 
 
