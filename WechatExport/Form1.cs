@@ -338,6 +338,7 @@ namespace WechatExport
         void AddLog(string str)
         {
             listBox1.Items.Add(str);
+            listBox1.TopIndex = listBox1.Items.Count - 1;
             PostLog(str);
         }
 
