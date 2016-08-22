@@ -10,6 +10,7 @@ using System.Drawing;
 using System.Threading;
 using System.Text.RegularExpressions;
 using System.Linq;
+using System.Data.SQLite;
 
 namespace WechatExport
 {
@@ -19,7 +20,7 @@ namespace WechatExport
         private List<mbdb.MBFileRecord> files92;
         private iPhoneBackup currentBackup = null;
         private iPhoneApp weixinapp = null;
-        private Dictionary<string, iPhoneFile> fileDict = null;
+        private WeChatInterface wechat = null;
 
         public Form1()
         {
@@ -300,9 +301,10 @@ namespace WechatExport
             var saveBase = textBox1.Text;
             Directory.CreateDirectory(saveBase);
             addLog("分析文件夹结构");
-            fileDict = buildFilesDictionary(weixinapp);
+            wechat = new WeChatInterface(currentBackup, files92);
+            wechat.buildFilesDictionary(weixinapp);
             addLog("查找UID");
-            var UIDs = findUIDs(fileDict);
+            var UIDs = wechat.findUIDs();
             addLog("找到" + UIDs.Count + "个账号的消息记录");
             foreach (var uid in UIDs)
             {
@@ -310,91 +312,23 @@ namespace WechatExport
                 addLog("开始处理UID: " + uid);
                 addLog("读取账号信息");
                 string userid, username;
-                if (getUserBasics(uid, userBase, out userid, out username)) addLog("微信号：" + userid + " 昵称：" + username);
+                if (wechat.getUserBasics(uid, userBase, out userid, out username)) addLog("微信号：" + userid + " 昵称：" + username);
                 else addLog("没有找到本人信息，用默认值替代");
                 var userSaveBase = Path.Combine(saveBase, userid);
                 Directory.CreateDirectory(userSaveBase);
                 addLog("正在打开数据库");
-
-            }
-        }
-
-        bool getUserBasics(string uid, string userBase, out string userid,out string username)
-        {
-            userid = uid;
-            username = "我";
-            bool succ = false;
-            try
-            {
-                var pr = new BinaryPlistReader();
-                var mmsetting = getBackupFilePath(Path.Combine(userBase, "mmsetting.archive"));
-                using (var sw = new FileStream(mmsetting, FileMode.Open))
+                SQLiteConnection conn;
+                if (!wechat.openMMSqlite(userBase, out conn))
                 {
-                    var dd = pr.ReadObject(sw);
-                    var objs = dd["$objects"] as object[];
-                    if (objs[2].GetType() == typeof(string) && objs[3].GetType() == typeof(string))
-                    {
-                        var tuserid = objs[2] as string;
-                        var tusername = objs[3] as string;
-                        if (tuserid != "" && tusername != "")
-                        {
-                            userid = tuserid;
-                            username = tusername;
-                            succ = true;
-                        }
-                    }
+                    addLog("打开MM.sqlite失败，跳过");
+                    continue;
                 }
+                addLog("读取好友列表");
+
             }
-            catch (Exception) { }
-            return succ;
         }
 
 
-
-        string getBackupFilePath(string vpath)
-        {
-            vpath = vpath.Replace('\\', '/');
-            if (!fileDict.ContainsKey(vpath)) return null;
-            var file = fileDict[vpath];
-            var ext = "";
-            if (files92 == null)
-                ext = ".mddata";
-            return Path.Combine(currentBackup.path, file.Key + ext);
-        }
-
-        Dictionary<string,iPhoneFile> buildFilesDictionary(iPhoneApp app)
-        {
-            var dict = new Dictionary<string, iPhoneFile>();
-            int count = 0;
-            foreach (var f in app.Files)
-            {
-                var x = files92[int.Parse(f)];
-                var ff = new iPhoneFile()
-                {
-                    Key = x.key,
-                    Domain = x.Domain,
-                    Path = x.Path,
-                    ModificationTime = x.aTime,
-                    FileLength = x.FileLength
-                };
-                dict.Add(x.Path, ff);
-            }
-            return dict;
-        }
-
-        List<string> findUIDs(Dictionary<string, iPhoneFile> dict)
-        {
-            var UIDs = new HashSet<string>();
-            int count = 0;
-            foreach(var filename in dict)
-            {
-                var match = Regex.Match(filename.Key, @"Documents\/([0-9a-f]{32})\/");
-                if (match.Success) UIDs.Add(match.Groups[1].Value);
-            }
-            var zeros = new string('0', 32);
-            if (UIDs.Contains(zeros)) UIDs.Remove(zeros);
-            return UIDs.ToList();
-        }
 
         void addLog(string str)
         {
