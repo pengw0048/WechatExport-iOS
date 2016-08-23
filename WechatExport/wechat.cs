@@ -263,7 +263,7 @@ namespace WechatExport
                                 }
                                 else if (type == 42) message = "[名片]";
 
-                                sw.WriteLine(txtsender + "(" + FromUnixTime(unixtime).ToLongTimeString() + ")" + ": " + message);
+                                sw.WriteLine(txtsender + "(" + FromUnixTime(unixtime).ToLocalTime().ToString() + ")" + ": " + message);
                                 count++;
 
                             }
