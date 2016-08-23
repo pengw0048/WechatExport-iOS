@@ -35,10 +35,22 @@ namespace WechatExport
                 conn.Open();
                 succ = true;
             }
-            catch (Exception ex)
+            catch (Exception) { }
+            return succ;
+        }
+
+        public bool OpenWCDBContact(string userBase, out SQLiteConnection conn)
+        {
+            bool succ = false;
+            conn = null;
+            try
             {
-                MessageBox.Show(ex.ToString());
+                conn = new SQLiteConnection();
+                conn.ConnectionString = "data source=" + GetBackupFilePath(Path.Combine(userBase, "DB", "WCDB_Contact.sqlite")) + ";version=3";
+                conn.Open();
+                succ = true;
             }
+            catch (Exception) { }
             return succ;
         }
 
@@ -80,7 +92,7 @@ namespace WechatExport
             {
                 using (var cmd = new SQLiteCommand(conn))
                 {
-                    cmd.CommandText = "SELECT Friend.UsrName,NickName,Sex,ConRemark,ConChatRoomMem,ConStrRes2 FROM Friend JOIN Friend_Ext ON Friend.UsrName=Friend_Ext.UsrName";
+                    cmd.CommandText = "SELECT Friend.UsrName,NickName,ConRemark,ConChatRoomMem,ConStrRes2 FROM Friend JOIN Friend_Ext ON Friend.UsrName=Friend_Ext.UsrName";
                     using (var reader = cmd.ExecuteReader())
                     {
                         while (reader.Read())
@@ -89,10 +101,9 @@ namespace WechatExport
                                 var friend = new Friend();
                                 friend.UsrName = reader.GetString(0);
                                 friend.NickName = reader.GetString(1);
-                                friend.Sex = reader.GetInt32(2);
-                                friend.ConRemark = reader.GetString(3);
-                                friend.ConChatRoomMem = reader.GetString(4);
-                                friend.ConStrRes2 = reader.GetString(5);
+                                friend.ConRemark = reader.GetString(2);
+                                friend.ConChatRoomMem = reader.GetString(3);
+                                friend.ConStrRes2 = reader.GetString(4);
                                 friend.ProcessFields();
                                 friends.Add(friend);
                             }
@@ -105,21 +116,60 @@ namespace WechatExport
             return succ;
         }
 
-        public bool GetFriendsDict(SQLiteConnection conn, out Dictionary<string,Friend> friends)
+        public bool GetWCDBFriends(SQLiteConnection wcdb, out List<Friend> friends)
         {
-            List<Friend> _friends;
+            friends = new List<Friend>();
+            bool succ = false;
+            try
+            {
+                using(var cmd=new SQLiteCommand(wcdb))
+                {
+                    var buf = new byte[2000];
+                    cmd.CommandText = "SELECT userName,dbContactRemark FROM Friend";
+                    using (var reader = cmd.ExecuteReader())
+                        while(reader.Read())
+                            try
+                            {
+                                var friend = new Friend();
+                                var username = reader.GetString(0);
+                                var len = reader.GetBytes(1, 0, buf, 0, 2000);
+                                var data = ReadBlob(buf, 0, (int)len);
+                                friend.UsrName = username;
+                                if (data.ContainsKey(0x0a)) friend.NickName = data[0x0a];
+                                if (data.ContainsKey(0x12)) friend.alias = data[0x12];
+                                if (data.ContainsKey(0x1a)) friend.ConRemark = data[0x1a];
+                                friends.Add(friend);
+                            }
+                            catch (Exception) { }
+                }
+                succ = true;
+            }
+            catch (Exception) { }
+            return succ;
+        }
+
+        public bool GetFriendsDict(SQLiteConnection conn, SQLiteConnection wcdb, out Dictionary<string,Friend> friends, out int count)
+        {
+            count = 0;
+            List<Friend> _friends,_friends2;
             friends = new Dictionary<string, Friend>();
             bool succ = GetFriends(conn, out _friends);
+            if (wcdb != null)
+            {
+                succ |= GetWCDBFriends(wcdb, out _friends2);
+                _friends.AddRange(_friends2);
+            }
             if (succ)
             {
                 foreach (var friend in _friends)
                 {
-                    friends.Add(friend.UsrName, friend);
-                    friends.Add(CreateMD5(friend.UsrName), friend);
+                    count++;
+                    friends.AddSafe(friend.UsrName, friend);
+                    friends.AddSafe(CreateMD5(friend.UsrName), friend);
                     if (friend.alias != null && friend.alias != "" && !friends.ContainsKey(friend.alias))
                     {
-                        friends.Add(friend.alias, friend);
-                        friends.Add(CreateMD5(friend.alias), friend);
+                        friends.AddSafe(friend.alias, friend);
+                        friends.AddSafe(CreateMD5(friend.alias), friend);
                     }
                 }
             }
@@ -266,13 +316,31 @@ namespace WechatExport
             var epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
             return epoch.AddSeconds(unixTime);
         }
+
+        public static Dictionary<byte,string> ReadBlob(byte[] blob, int offset, int len)
+        {
+            var ret = new Dictionary<byte, string>();
+            var p = offset;
+            var end = offset + len;
+            while (p < end)
+            {
+                var abyte = blob[p++];
+                if (p >= end) break;
+                var asize = blob[p++];
+                if (p + asize > end) break;
+                var astring = Encoding.UTF8.GetString(blob, p, asize);
+                ret.Add(abyte, astring);
+                p += asize;
+            }
+            return ret;
+        }
+
     }
 
     public class Friend
     {
         public string UsrName;
         public string NickName;
-        public int Sex;
         public string ConRemark;
         public string ConChatRoomMem;
         public string ConStrRes2;
@@ -287,14 +355,21 @@ namespace WechatExport
         {
             if (ConRemark != null && ConRemark != "") return ConRemark;
             if (NickName != null && NickName != "") return NickName;
-            if (UsrName != null && UsrName != "") return UsrName;
-            return null;
+            return ID();
         }
         public string ID()
         {
             if (alias != null && alias != "") return alias;
             if (UsrName != null && UsrName != "") return UsrName;
             return null;
+        }
+    }
+
+    public static class DictionaryHelper
+    {
+        public static void AddSafe(this Dictionary<string, Friend> dict, string key, Friend value)
+        {
+            if (!dict.ContainsKey(key)) dict.Add(key, value);
         }
     }
 }

@@ -289,20 +289,23 @@ namespace WechatExport
                 var userSaveBase = Path.Combine(saveBase, userid);
                 Directory.CreateDirectory(userSaveBase);
                 AddLog("正在打开数据库");
-                SQLiteConnection conn;
+                SQLiteConnection conn, wcdb;
                 if (!wechat.OpenMMSqlite(userBase, out conn))
                 {
                     AddLog("打开MM.sqlite失败，跳过");
                     continue;
                 }
+                if (wechat.OpenWCDBContact(userBase, out wcdb))
+                    AddLog("存在WCDB，与旧版好友列表合并使用");
                 AddLog("读取好友列表");
                 Dictionary<string,Friend> friends;
-                if(!wechat.GetFriendsDict(conn, out friends))
+                int friendcount;
+                if(!wechat.GetFriendsDict(conn, wcdb, out friends, out friendcount))
                 {
                     AddLog("读取好友列表失败，跳过");
                     continue;
                 }
-                AddLog("找到" + friends.Count + "个好友/聊天室");
+                AddLog("找到" + friendcount + "个好友/聊天室");
                 AddLog("查找对话");
                 List<string> chats;
                 wechat.GetChatSessions(conn, out chats);
