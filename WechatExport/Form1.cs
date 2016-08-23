@@ -283,10 +283,11 @@ namespace WechatExport
                 var userBase = Path.Combine("Documents", uid);
                 AddLog("开始处理UID: " + uid);
                 AddLog("读取账号信息");
-                string userid, username;
-                if (wechat.GetUserBasics(uid, userBase, out userid, out username)) AddLog("微信号：" + userid + " 昵称：" + username);
+                string userid, username, useralias;
+                if (wechat.GetUserBasics(uid, userBase, out userid, out username, out useralias)) AddLog("微信号：" + userid + (useralias == null ? "" : " 新微信号：" + useralias) + " 昵称：" + username);
                 else AddLog("没有找到本人信息，用默认值替代");
-                var userSaveBase = Path.Combine(saveBase, userid);
+                var myself = new Friend() { UsrName = userid, NickName = username, alias = useralias };
+                var userSaveBase = Path.Combine(saveBase, useralias!=null?useralias: userid);
                 Directory.CreateDirectory(userSaveBase);
                 AddLog("正在打开数据库");
                 SQLiteConnection conn, wcdb;
@@ -324,7 +325,7 @@ namespace WechatExport
                     }
                     else AddLog("未找到好友信息，用默认名字代替");
                     int count;
-                    if (wechat.SaveTextRecord(conn, Path.Combine(userSaveBase, id + ".txt"), displayname, username, id, chat, friend, friends, out count)) AddLog("成功处理"+count+"条");
+                    if (wechat.SaveTextRecord(conn, Path.Combine(userSaveBase, id + ".txt"), displayname, id, myself, chat, friend, friends, out count)) AddLog("成功处理"+count+"条");
                     else AddLog("失败");
                 }
                 AddLog("完成当前账号");

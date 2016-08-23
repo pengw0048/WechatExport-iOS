@@ -54,10 +54,11 @@ namespace WechatExport
             return succ;
         }
 
-        public bool GetUserBasics(string uid, string userBase, out string userid, out string username)
+        public bool GetUserBasics(string uid, string userBase, out string userid, out string username, out string useralias)
         {
             userid = uid;
             username = "我";
+            useralias = null;
             bool succ = false;
             try
             {
@@ -78,6 +79,13 @@ namespace WechatExport
                             succ = true;
                         }
                     }
+                    for (int i = 1; i < objs.Length; i++)
+                        if (objs[i - 1].GetType() == typeof(string) && objs[i - 1] as string == "0" && objs[i].GetType() == typeof(string))
+                            if (Regex.Match(objs[i] as string, @"^[a-zA-Z][\w-_]+$").Success)
+                            {
+                                useralias = objs[i] as string;
+                                break;
+                            }
                 }
             }
             catch (Exception) { }
@@ -211,7 +219,7 @@ namespace WechatExport
             return succ;
         }
 
-        public bool SaveTextRecord(SQLiteConnection conn, string path, string displayname, string myname, string id, string table, Friend friend, Dictionary<string, Friend> friends, out int count)
+        public bool SaveTextRecord(SQLiteConnection conn, string path, string displayname, string id, Friend myself, string table, Friend friend, Dictionary<string, Friend> friends, out int count)
         {
             bool succ = false;
             count = 0;
@@ -235,7 +243,7 @@ namespace WechatExport
                                 var message = reader.GetString(1);
                                 var des = reader.GetInt32(2);
                                 var type = reader.GetInt32(3);
-                                var txtsender = (type == 10000 ? "[系统消息]" : (des == 1 ? displayname : myname));
+                                var txtsender = (type == 10000 ? "[系统消息]" : (des == 1 ? displayname : myself.DisplayName()));
                                 if (id.EndsWith("@chatroom") && type != 10000 && des == 1)
                                 {
                                     var enter = message.IndexOf(":\n");
@@ -246,6 +254,11 @@ namespace WechatExport
                                         if (chatremark.ContainsKey(txtsender)) txtsender = chatremark[txtsender];
                                         else if (friends.ContainsKey(txtsender)) txtsender = friends[txtsender].DisplayName();
                                     }
+                                }
+                                if(id.EndsWith("@chatroom") && des == 0)
+                                {
+                                    if (chatremark.ContainsKey(myself.UsrName)) txtsender = chatremark[myself.UsrName];
+                                    else if (chatremark.ContainsKey(myself.alias)) txtsender = chatremark[myself.alias];
                                 }
                                 if (type == 34) message = "[语音]";
                                 else if (type == 47) message = "[表情]";
@@ -362,11 +375,13 @@ namespace WechatExport
         public static Dictionary<string,string> ReadChatRoomRemark(string str)
         {
             var ret = new Dictionary<string, string>();
-            var matches = Regex.Matches(str, @"<Member UserName=""(.+?)"".*?<DisplayName>(.+?)<\/DisplayName>.*?<\/Member>");
+            var matches = Regex.Matches(str, @"<Member UserName=""(.+?)""(.+?)<\/Member>");
             foreach (Match match in matches)
             {
+                var match2 = Regex.Match(match.Groups[2].Value, @"<DisplayName>(.+?)<\/DisplayName>");
+                if (!match2.Success) continue;
                 var username = match.Groups[1].Value;
-                var displayname = match.Groups[2].Value;
+                var displayname = match2.Groups[1].Value;
                 ret.Add(username, displayname);
             }
             return ret;
