@@ -234,7 +234,7 @@ namespace WechatExport
                                     if (message.Contains("微信红包")) message = "[红包]";
                                     else if (message.Contains("微信转账")) message = "[转账]";
                                     else if (message.Contains("我发起了位置共享")) message = "[位置共享]";
-                                    else if (message.Contains("<appattach>")) message = "[文件]";
+                                    else if (message.Contains("<type>6<")) message = "[文件]";
                                     else message = "链接";
                                 }
                                 else if (type == 42) message = "[名片]";
