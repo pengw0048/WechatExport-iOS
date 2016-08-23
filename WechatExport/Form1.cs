@@ -314,16 +314,17 @@ namespace WechatExport
                 {
                     var hash = chat;
                     string displayname = chat, id = displayname;
+                    Friend friend = null;
                     if (friends.ContainsKey(hash))
                     {
-                        var friend = friends[hash];
+                        friend = friends[hash];
                         displayname = friend.DisplayName();
                         AddLog("处理与" + displayname + "的对话");
                         id = friend.ID();
                     }
                     else AddLog("未找到好友信息，用默认名字代替");
                     int count;
-                    if (wechat.SaveTextRecord(conn, Path.Combine(userSaveBase, id + ".txt"), displayname, username, id, chat, out count)) AddLog("成功处理"+count+"条");
+                    if (wechat.SaveTextRecord(conn, Path.Combine(userSaveBase, id + ".txt"), displayname, username, id, chat, friend, friends, out count)) AddLog("成功处理"+count+"条");
                     else AddLog("失败");
                 }
                 AddLog("完成当前账号");

@@ -124,20 +124,28 @@ namespace WechatExport
             {
                 using(var cmd=new SQLiteCommand(wcdb))
                 {
-                    var buf = new byte[2000];
-                    cmd.CommandText = "SELECT userName,dbContactRemark FROM Friend";
+                    var buf = new byte[10000];
+                    cmd.CommandText = "SELECT userName,dbContactRemark,dbContactChatRoom FROM Friend";
                     using (var reader = cmd.ExecuteReader())
                         while(reader.Read())
                             try
                             {
                                 var friend = new Friend();
                                 var username = reader.GetString(0);
-                                var len = reader.GetBytes(1, 0, buf, 0, 2000);
+                                var len = reader.GetBytes(1, 0, buf, 0, buf.Length);
                                 var data = ReadBlob(buf, 0, (int)len);
                                 friend.UsrName = username;
                                 if (data.ContainsKey(0x0a)) friend.NickName = data[0x0a];
                                 if (data.ContainsKey(0x12)) friend.alias = data[0x12];
                                 if (data.ContainsKey(0x1a)) friend.ConRemark = data[0x1a];
+                                if(username.EndsWith("@chatroom"))
+                                    try
+                                    {
+                                        //should also add members id list
+                                        var match = Regex.Match(reader.GetString(2), @"<RoomData>(.*?)<\/RoomData>", RegexOptions.Singleline);
+                                        if (match.Success) friend.dbContactChatRoom = match.Groups[1].Value;
+                                    }
+                                    catch (Exception) { }
                                 friends.Add(friend);
                             }
                             catch (Exception) { }
@@ -203,13 +211,17 @@ namespace WechatExport
             return succ;
         }
 
-        public bool SaveTextRecord(SQLiteConnection conn, string path, string displayname, string myname, string id, string table, out int count)
+        public bool SaveTextRecord(SQLiteConnection conn, string path, string displayname, string myname, string id, string table, Friend friend, Dictionary<string, Friend> friends, out int count)
         {
             bool succ = false;
             count = 0;
             try
             {
-                if (id.EndsWith("@chatroom")) return false;
+                Dictionary<string, string> chatremark = null;
+                if (id.EndsWith("@chatroom") && friend!=null && friend.dbContactChatRoom!=null)
+                {
+                    chatremark = ReadChatRoomRemark(friend.dbContactChatRoom);
+                }
                 using (var cmd = new SQLiteCommand(conn))
                 {
                     cmd.CommandText = "SELECT CreateTime,Message,Des,Type FROM Chat_" + table;
@@ -224,6 +236,17 @@ namespace WechatExport
                                 var des = reader.GetInt32(2);
                                 var type = reader.GetInt32(3);
                                 var txtsender = (type == 10000 ? "[系统消息]" : (des == 1 ? displayname : myname));
+                                if (id.EndsWith("@chatroom") && type != 10000 && des == 1)
+                                {
+                                    var enter = message.IndexOf(":\n");
+                                    if (enter > 0 && enter + 2 < message.Length)
+                                    {
+                                        txtsender = message.Substring(0, enter);
+                                        message = message.Substring(enter + 2);
+                                        if (chatremark.ContainsKey(txtsender)) txtsender = chatremark[txtsender];
+                                        else if (friends.ContainsKey(txtsender)) txtsender = friends[txtsender].DisplayName();
+                                    }
+                                }
                                 if (type == 34) message = "[语音]";
                                 else if (type == 47) message = "[表情]";
                                 else if (type == 62) message = "[小视频]";
@@ -246,8 +269,8 @@ namespace WechatExport
                             }
                             catch (Exception) { }
                     }
-                    succ = true;
                 }
+                succ = true;
             }
             catch (Exception) { }
             return succ;
@@ -336,6 +359,18 @@ namespace WechatExport
             return ret;
         }
 
+        public static Dictionary<string,string> ReadChatRoomRemark(string str)
+        {
+            var ret = new Dictionary<string, string>();
+            var matches = Regex.Matches(str, @"<Member UserName=""(.+?)"".*?<DisplayName>(.+?)<\/DisplayName>.*?<\/Member>");
+            foreach (Match match in matches)
+            {
+                var username = match.Groups[1].Value;
+                var displayname = match.Groups[2].Value;
+                ret.Add(username, displayname);
+            }
+            return ret;
+        }
     }
 
     public class Friend
@@ -344,6 +379,7 @@ namespace WechatExport
         public string NickName;
         public string ConRemark;
         public string ConChatRoomMem;
+        public string dbContactChatRoom;
         public string ConStrRes2;
 
         public string alias;
