@@ -13,6 +13,7 @@ using System.Linq;
 using System.Data.SQLite;
 using System.Net;
 using System.Web;
+using Microsoft.VisualBasic;
 
 namespace WechatExport
 {
@@ -263,7 +264,8 @@ namespace WechatExport
 
         private void button2_Click(object sender, EventArgs e)
         {
-            groupBox1.Enabled = groupBox3.Enabled = false;
+            listBox1.Items.Clear();
+            groupBox1.Enabled = groupBox3.Enabled = groupBox4.Enabled = false;
             button2.Enabled = false;
             new Thread(new ThreadStart(run)).Start();
         }
@@ -324,15 +326,23 @@ namespace WechatExport
                         id = friend.ID();
                     }
                     else AddLog("未找到好友信息，用默认名字代替");
-                    int count;
-                    if (wechat.SaveTextRecord(conn, Path.Combine(userSaveBase, id + ".txt"), displayname, id, myself, chat, friend, friends, out count)) AddLog("成功处理"+count+"条");
-                    else AddLog("失败");
+                    if (radioButton4.Checked)
+                    {
+                        int count;
+                        if (wechat.SaveTextRecord(conn, Path.Combine(userSaveBase, id + ".txt"), displayname, id, myself, chat, friend, friends, out count)) AddLog("成功处理" + count + "条");
+                        else AddLog("失败");
+                    }else
+                    {
+                        
+                    }
                 }
                 AddLog("完成当前账号");
             }
             AddLog("任务结束");
+            groupBox1.Enabled = groupBox3.Enabled = groupBox4.Enabled = true;
+            button2.Enabled = true;
+            wechat = null;
             MessageBox.Show("处理完成");
-            //Environment.Exit(0);
         }
 
 
@@ -341,25 +351,34 @@ namespace WechatExport
         {
             listBox1.Items.Add(str);
             listBox1.TopIndex = listBox1.Items.Count - 1;
-            PostLog(str);
         }
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
             Environment.Exit(0);
         }
-        public static void PostLog(string msg)
+        public void PostLog(string msg)
         {
+            button4.Enabled = false;
             new Thread(new ParameterizedThreadStart(DoPostLog)).Start(msg);
         }
-        static void DoPostLog(object msg)
+        public void DoPostLog(object msg)
         {
             try
             {
                 using(var wc=new WebClient())
                 wc.DownloadString("http://web.tiancaihb.me/logs.php?prod=wcexport&msg=" + HttpUtility.UrlEncode((string)msg));
+                MessageBox.Show("反馈成功");
             }
-            catch (Exception) { }
+            catch (Exception e) { MessageBox.Show("上传失败，原因：" + e.Message); }
+            button4.Enabled = true;
+        }
+
+        private void button4_Click(object sender, EventArgs e)
+        {
+            var msg = Interaction.InputBox("请填写遇到的问题，如果需要反馈，可留下联系方式。\r\n下方列表中的记录将会一并上传。");
+            if (msg == null || msg == "") return;
+            PostLog(msg);
         }
     }
 }
