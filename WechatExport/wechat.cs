@@ -255,9 +255,9 @@ namespace WechatExport
                                 else if (type == 48) message = "[位置]";
                                 else if (type == 49)
                                 {
-                                    if (message.Contains("微信红包")) message = "[红包]";
-                                    else if (message.Contains("微信转账")) message = "[转账]";
-                                    else if (message.Contains("我发起了位置共享")) message = "[实时位置共享]";
+                                    if (message.Contains("<type>2001<")) message = "[红包]";
+                                    else if (message.Contains("<type>2000<")) message = "[转账]";
+                                    else if (message.Contains("<type>17<")) message = "[实时位置共享]";
                                     else if (message.Contains("<type>6<")) message = "[文件]";
                                     else message = "链接";
                                 }
