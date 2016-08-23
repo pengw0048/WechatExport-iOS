@@ -259,7 +259,7 @@ namespace WechatExport
                                     else if (message.Contains("<type>2000<")) message = "[转账]";
                                     else if (message.Contains("<type>17<")) message = "[实时位置共享]";
                                     else if (message.Contains("<type>6<")) message = "[文件]";
-                                    else message = "链接";
+                                    else message = "[链接]";
                                 }
                                 else if (type == 42) message = "[名片]";
 
