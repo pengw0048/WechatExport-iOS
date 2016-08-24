@@ -285,11 +285,10 @@ namespace WechatExport
                 var userBase = Path.Combine("Documents", uid);
                 AddLog("开始处理UID: " + uid);
                 AddLog("读取账号信息");
-                string userid, username, useralias;
-                if (wechat.GetUserBasics(uid, userBase, out userid, out username, out useralias)) AddLog("微信号：" + userid + (useralias == null ? "" : " 新微信号：" + useralias) + " 昵称：" + username);
+                Friend myself;
+                if (wechat.GetUserBasics(uid, userBase, out myself)) AddLog("微信号：" + myself.ID() + " 昵称：" + myself.DisplayName());
                 else AddLog("没有找到本人信息，用默认值替代");
-                var myself = new Friend() { UsrName = userid, NickName = username, alias = useralias };
-                var userSaveBase = Path.Combine(saveBase, useralias!=null?useralias: userid);
+                var userSaveBase = Path.Combine(saveBase, myself.ID());
                 Directory.CreateDirectory(userSaveBase);
                 AddLog("正在打开数据库");
                 SQLiteConnection conn, wcdb;
@@ -331,7 +330,7 @@ namespace WechatExport
                         int count;
                         if (wechat.SaveTextRecord(conn, Path.Combine(userSaveBase, id + ".txt"), displayname, id, myself, chat, friend, friends, out count)) AddLog("成功处理" + count + "条");
                         else AddLog("失败");
-                    }else
+                    }else if(radioButton3.Checked)
                     {
                         
                     }

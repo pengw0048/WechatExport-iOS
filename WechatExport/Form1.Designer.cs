@@ -35,6 +35,7 @@
             this.label1 = new System.Windows.Forms.Label();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
             this.listBox1 = new System.Windows.Forms.ListBox();
+            this.button4 = new System.Windows.Forms.Button();
             this.button2 = new System.Windows.Forms.Button();
             this.groupBox3 = new System.Windows.Forms.GroupBox();
             this.button3 = new System.Windows.Forms.Button();
@@ -45,7 +46,6 @@
             this.groupBox4 = new System.Windows.Forms.GroupBox();
             this.radioButton3 = new System.Windows.Forms.RadioButton();
             this.radioButton4 = new System.Windows.Forms.RadioButton();
-            this.button4 = new System.Windows.Forms.Button();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
             this.groupBox3.SuspendLayout();
@@ -128,6 +128,16 @@
             this.listBox1.SelectionMode = System.Windows.Forms.SelectionMode.None;
             this.listBox1.Size = new System.Drawing.Size(535, 224);
             this.listBox1.TabIndex = 3;
+            // 
+            // button4
+            // 
+            this.button4.Location = new System.Drawing.Point(325, 24);
+            this.button4.Name = "button4";
+            this.button4.Size = new System.Drawing.Size(214, 37);
+            this.button4.TabIndex = 2;
+            this.button4.Text = "反馈遇到的问题";
+            this.button4.UseVisualStyleBackColor = true;
+            this.button4.Click += new System.EventHandler(this.button4_Click);
             // 
             // button2
             // 
@@ -216,7 +226,6 @@
             // radioButton3
             // 
             this.radioButton3.AutoSize = true;
-            this.radioButton3.Enabled = false;
             this.radioButton3.Location = new System.Drawing.Point(8, 63);
             this.radioButton3.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.radioButton3.Name = "radioButton3";
@@ -237,16 +246,6 @@
             this.radioButton4.TabStop = true;
             this.radioButton4.Text = "文本 （保留文字内容，每个对话保存为一个txt文件）";
             this.radioButton4.UseVisualStyleBackColor = true;
-            // 
-            // button4
-            // 
-            this.button4.Location = new System.Drawing.Point(325, 24);
-            this.button4.Name = "button4";
-            this.button4.Size = new System.Drawing.Size(214, 37);
-            this.button4.TabIndex = 2;
-            this.button4.Text = "反馈遇到的问题";
-            this.button4.UseVisualStyleBackColor = true;
-            this.button4.Click += new System.EventHandler(this.button4_Click);
             // 
             // Form1
             // 

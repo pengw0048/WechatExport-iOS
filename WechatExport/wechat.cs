@@ -54,11 +54,9 @@ namespace WechatExport
             return succ;
         }
 
-        public bool GetUserBasics(string uid, string userBase, out string userid, out string username, out string useralias)
+        public bool GetUserBasics(string uid, string userBase, out Friend friend)
         {
-            userid = uid;
-            username = "我";
-            useralias = null;
+            friend = new Friend() { UsrName = uid, NickName = "我", alias = null };
             bool succ = false;
             try
             {
@@ -74,8 +72,8 @@ namespace WechatExport
                         var tusername = objs[3] as string;
                         if (tuserid != "" && tusername != "")
                         {
-                            userid = tuserid;
-                            username = tusername;
+                            friend.UsrName = tuserid;
+                            friend.NickName = tusername;
                             succ = true;
                         }
                     }
@@ -83,9 +81,15 @@ namespace WechatExport
                         if (objs[i - 1].GetType() == typeof(string) && objs[i - 1] as string == "0" && objs[i].GetType() == typeof(string))
                             if (Regex.Match(objs[i] as string, @"^[a-zA-Z][\w-_]+$").Success)
                             {
-                                useralias = objs[i] as string;
+                                friend.alias = objs[i] as string;
                                 break;
                             }
+                    for(int i = 0; i < objs.Length; i++)
+                        if((objs[i] as string).StartsWith("http://wx.qlogo.cn/mmhead/"))
+                        {
+                            if ((objs[i] as string).EndsWith("/0")) friend.potrait_hd = (objs[i] as string);
+                            else if ((objs[i] as string).EndsWith("/132")) friend.potrait = (objs[i] as string);
+                        }
                 }
             }
             catch (Exception) { }
@@ -112,7 +116,7 @@ namespace WechatExport
                                 friend.ConRemark = reader.GetString(2);
                                 friend.ConChatRoomMem = reader.GetString(3);
                                 friend.ConStrRes2 = reader.GetString(4);
-                                friend.ProcessFields();
+                                friend.ProcessConStrRes2();
                                 friends.Add(friend);
                             }
                             catch (Exception) { }
@@ -133,7 +137,7 @@ namespace WechatExport
                 using(var cmd=new SQLiteCommand(wcdb))
                 {
                     var buf = new byte[10000];
-                    cmd.CommandText = "SELECT userName,dbContactRemark,dbContactChatRoom FROM Friend";
+                    cmd.CommandText = "SELECT userName,dbContactRemark,dbContactChatRoom,dbContactHeadImage FROM Friend";
                     using (var reader = cmd.ExecuteReader())
                         while(reader.Read())
                             try
@@ -150,10 +154,15 @@ namespace WechatExport
                                     try
                                     {
                                         //should also add members id list
-                                        var match = Regex.Match(reader.GetString(2), @"<RoomData>(.*?)<\/RoomData>", RegexOptions.Singleline);
-                                        if (match.Success) friend.dbContactChatRoom = match.Groups[1].Value;
+                                        var match2 = Regex.Match(reader.GetString(2), @"RoomData>(.*?)<\/RoomData>", RegexOptions.Singleline);
+                                        if (match2.Success) friend.dbContactChatRoom = match2.Groups[1].Value;
                                     }
                                     catch (Exception) { }
+                                var str = reader.GetString(3);
+                                var match = Regex.Match(str, @"(ttp:\/\/wx.qlogo.cn\/(.+?)\/132)");
+                                if (match.Success) friend.potrait = "h" + match.Groups[1].Value;
+                                match = Regex.Match(str, @"(ttp:\/\/wx.qlogo.cn\/([\w\/_]+?)\/0)");
+                                if (match.Success) friend.potrait_hd = "h" + match.Groups[1].Value;
                                 friends.Add(friend);
                             }
                             catch (Exception) { }
@@ -289,6 +298,37 @@ namespace WechatExport
             return succ;
         }
 
+        public bool SaveHtmRecord(SQLiteConnection conn,string path,string displayname,string id, Friend myself, string table, Friend friend, Dictionary<string, Friend> friends, out int count)
+        {
+            bool succ = false;
+            count = 0;
+            try
+            {
+                Dictionary<string, string> chatremark = null;
+                if (id.EndsWith("@chatroom") && friend != null && friend.dbContactChatRoom != null)
+                {
+                    chatremark = ReadChatRoomRemark(friend.dbContactChatRoom);
+                }
+                using (var cmd = new SQLiteCommand(conn))
+                {
+                    cmd.CommandText = "SELECT CreateTime,Message,Des,Type FROM Chat_" + table;
+                    using (var reader = cmd.ExecuteReader())
+                    using (var sw = new StreamWriter(path))
+                    {
+                        while (reader.Read())
+                            try
+                            {
+
+                            }
+                            catch (Exception) { }
+                    }
+                }
+                succ = true;
+            }
+            catch (Exception) { }
+            return succ;
+        }
+
         public string GetBackupFilePath(string vpath)
         {
             vpath = vpath.Replace('\\', '/');
@@ -396,12 +436,18 @@ namespace WechatExport
         public string ConChatRoomMem;
         public string dbContactChatRoom;
         public string ConStrRes2;
+        public string potrait;
+        public string potrait_hd;
 
         public string alias;
-        public void ProcessFields()
+        public void ProcessConStrRes2()
         {
             var match = Regex.Match(ConStrRes2, @"<alias>(.*?)<\/alias>");
-            alias = match.Success ? match.Groups[1].Value : "";
+            alias = match.Success ? match.Groups[1].Value : null;
+            match = Regex.Match(ConStrRes2, @"<HeadImgUrl>(.+?)<\/HeadImgUrl>");
+            if (match.Success) potrait = match.Groups[1].Value;
+            match = Regex.Match(ConStrRes2, @"<HeadImgHDUrl>(.+?)<\/HeadImgHDUrl>");
+            if (match.Success) potrait_hd = match.Groups[1].Value;
         }
         public string DisplayName()
         {
