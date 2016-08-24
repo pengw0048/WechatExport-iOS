@@ -85,7 +85,7 @@ namespace WechatExport
                                 break;
                             }
                     for(int i = 0; i < objs.Length; i++)
-                        if((objs[i] as string).StartsWith("http://wx.qlogo.cn/mmhead/"))
+                        if(objs[i].GetType()==typeof(string) && (objs[i] as string).StartsWith("http://wx.qlogo.cn/mmhead/"))
                         {
                             if ((objs[i] as string).EndsWith("/0")) friend.PortraitHD = (objs[i] as string);
                             else if ((objs[i] as string).EndsWith("/132")) friend.Portrait = (objs[i] as string);
@@ -96,10 +96,11 @@ namespace WechatExport
             return succ;
         }
 
-        public bool GetFriends(SQLiteConnection conn, out List<Friend> friends)
+        public bool GetFriends(SQLiteConnection conn, Friend myself, out List<Friend> friends)
         {
             bool succ = false;
             friends = new List<Friend>();
+            friends.Add(myself);
             try
             {
                 using (var cmd = new SQLiteCommand(conn))
@@ -174,12 +175,12 @@ namespace WechatExport
             return succ;
         }
 
-        public bool GetFriendsDict(SQLiteConnection conn, SQLiteConnection wcdb, out Dictionary<string,Friend> friends, out int count)
+        public bool GetFriendsDict(SQLiteConnection conn, SQLiteConnection wcdb, Friend myself, out Dictionary<string,Friend> friends, out int count)
         {
             count = 0;
             List<Friend> _friends,_friends2;
             friends = new Dictionary<string, Friend>();
-            bool succ = GetFriends(conn, out _friends);
+            bool succ = GetFriends(conn, myself, out _friends);
             if (wcdb != null)
             {
                 succ |= GetWCDBFriends(wcdb, out _friends2);
@@ -342,7 +343,7 @@ namespace WechatExport
                                             var txtsender = myself.DisplayName();
                                             if (chatremark.ContainsKeySafe(myself.UsrName)) txtsender = chatremark[myself.UsrName];
                                             else if (chatremark.ContainsKeySafe(myself.alias)) txtsender = chatremark[myself.alias];
-                                            ts += @"<tr><td width=""80"" align=""center""><img src=""Potrait/" + myself.FindPortrait() + @""" width=""50"" height=""50"" /><br />" + txtsender + @"</td>";
+                                            ts += @"<tr><td width=""80"" align=""center""><img src=""Portrait/" + myself.FindPortrait() + @""" width=""50"" height=""50"" /><br />" + txtsender + @"</td>";
                                         }
                                         else
                                         {
@@ -354,16 +355,17 @@ namespace WechatExport
                                                 message = message.Substring(enter + 2);
                                                 if (chatremark.ContainsKeySafe(txtsender)) txtsender = chatremark[txtsender];
                                                 else if (friends.ContainsKeySafe(txtsender)) txtsender = friends[txtsender].DisplayName();
-                                                if(friends.ContainsKeySafe(senderid))ts+= @"<tr><td width=""80"" align=""center""><img src=""Potrait/" + friends[senderid] + @""" width=""50"" height=""50"" /><br />" + txtsender + @"</td>";
-                                                else ts += @"<tr><td width=""80"" align=""center""><img src=""Potrait/DefaultProfileHead@2x.png"" width=""50"" height=""50"" /><br />" + txtsender + @"</td>";
+                                                if (friends.ContainsKeySafe(senderid)) ts += @"<tr><td width=""80"" align=""center""><img src=""Portrait/" + friends[senderid] + @""" width=""50"" height=""50"" /><br />" + txtsender + @"</td>";
+                                                else ts += @"<tr><td width=""80"" align=""center""><img src=""Portrait/DefaultProfileHead@2x.png"" width=""50"" height=""50"" /><br />" + txtsender + @"</td>";
                                             }
                                             else ts += @"<tr><td width=""80"" align=""center"">&nbsp;</td>";
                                         }
-                                    }else
+                                    }
+                                    else
                                     {
-                                        if (des == 0) ts += @"<tr><td width=""80"" align=""center""><img src=""Potrait/" + myself.FindPortrait() + @""" width=""50"" height=""50"" /><br />" + myself.DisplayName()+ @"</td>";
-                                        else if(friend!=null) ts += @"<tr><td width=""80"" align=""center""><img src=""Potrait/" + friend.FindPortrait() + @""" width=""50"" height=""50"" /><br />" + friend.DisplayName() + @"</td>";
-                                        else ts += @"<tr><td width=""80"" align=""center""><img src=""Potrait/DefaultProfileHead@2x.png"" width=""50"" height=""50"" /><br />" + displayname + @"</td>";
+                                        if (des == 0) ts += @"<tr><td width=""80"" align=""center""><img src=""Portrait/" + myself.FindPortrait() + @""" width=""50"" height=""50"" /><br />" + myself.DisplayName() + @"</td>";
+                                        else if (friend != null) ts += @"<tr><td width=""80"" align=""center""><img src=""Portrait/" + friend.FindPortrait() + @""" width=""50"" height=""50"" /><br />" + friend.DisplayName() + @"</td>";
+                                        else ts += @"<tr><td width=""80"" align=""center""><img src=""Portrait/DefaultProfileHead@2x.png"" width=""50"" height=""50"" /><br />" + displayname + @"</td>";
                                     }
                                     if (type == 34) message = "[语音]";
                                     else if (type == 47) message = "[表情]";
@@ -383,7 +385,7 @@ namespace WechatExport
                                     else message = SafeHTML(message);
 
                                     ts += @"<td width=""140"" align=""center"">" + FromUnixTime(unixtime).ToLocalTime().ToString() + "</td>";
-                                    ts+=@"<td>" + message + @"</td></tr>";
+                                    ts += @"<td>" + message + @"</td></tr>";
                                     sw.WriteLine(ts);
                                     count++;
                                 }
@@ -547,13 +549,13 @@ namespace WechatExport
         public string FindPortrait()
         {
             PortraitRequired = true;
-            if (Portrait != null && Portrait != "") return Path.Combine("Portrait", ID() + ".jpg");
-            return Path.Combine("Portrait", "DefaultProfileHead@2x.png");
+            if (Portrait != null && Portrait != "") return ID() + ".jpg";
+            return "DefaultProfileHead@2x.png";
         }
         public string FindPortraitHD()
         {
             PortraitRequired = true;
-            if (PortraitHD != null && PortraitHD != "") return Path.Combine("Portrait", ID() + "_hd.jpg");
+            if (PortraitHD != null && PortraitHD != "") return ID() + "_hd.jpg";
             return FindPortrait();
         }
     }

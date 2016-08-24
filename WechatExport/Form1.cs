@@ -302,7 +302,7 @@ namespace WechatExport
                 AddLog("读取好友列表");
                 Dictionary<string,Friend> friends;
                 int friendcount;
-                if(!wechat.GetFriendsDict(conn, wcdb, out friends, out friendcount))
+                if(!wechat.GetFriendsDict(conn, wcdb, myself, out friends, out friendcount))
                 {
                     AddLog("读取好友列表失败，跳过");
                     continue;
@@ -336,6 +336,32 @@ namespace WechatExport
                         if (wechat.SaveHtmlRecord(conn, userSaveBase, displayname, id, myself, chat, friend, friends, out count)) AddLog("成功处理" + count + "条");
                         else AddLog("失败");
                     }
+                }
+
+                var portraitdir = Path.Combine(userSaveBase, "Portrait");
+                Directory.CreateDirectory(portraitdir);
+                var downlist = new HashSet<DownloadTask>();
+                foreach (var item in friends)
+                {
+                    var tfriend = item.Value;
+                    if (!tfriend.PortraitRequired) continue;
+                    if (tfriend.Portrait != null && tfriend.Portrait != "") downlist.Add(new DownloadTask() { url = tfriend.Portrait, filename = tfriend.ID() + ".jpg" });
+                    //if (tfriend.PortraitHD != null && tfriend.PortraitHD != "") downlist.Add(new DownloadTask() { url = tfriend.PortraitHD, filename = tfriend.ID() + "_hd.jpg" });
+                }
+                if (downlist.Count > 0)
+                {
+                    AddLog("下载" + downlist.Count + "个头像");
+                    using (var wc = new WebClient())
+                        foreach (var item in downlist)
+                        {
+                            try
+                            {
+                                wc.DownloadFile(item.url, Path.Combine(portraitdir, item.filename));
+                            }
+                            catch (Exception) { }
+                        }
+                    File.Copy("DefaultProfileHead@2x.png", Path.Combine(portraitdir, "DefaultProfileHead@2x.png"));
+                    AddLog("下载完毕");
                 }
                 AddLog("完成当前账号");
             }
@@ -380,6 +406,27 @@ namespace WechatExport
             var msg = Interaction.InputBox("请填写遇到的问题，如果需要反馈，可留下联系方式。\r\n下方列表中的记录将会一并上传。");
             if (msg == null || msg == "") return;
             PostLog(msg);
+        }
+
+        class DownloadTask:IEquatable<DownloadTask>
+        {
+            public string url;
+            public string filename;
+
+            public bool Equals(DownloadTask other)
+            {
+                return url == other.url && filename == other.filename;
+            }
+
+            public override bool Equals(object other)
+            {
+                return other is DownloadTask && Equals((DownloadTask)other);
+            }
+
+            public override int GetHashCode()
+            {
+                return url.GetHashCode() * 1000000009 + filename.GetHashCode();
+            }
         }
     }
 }
