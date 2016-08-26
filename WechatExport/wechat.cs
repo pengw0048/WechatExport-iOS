@@ -335,7 +335,7 @@ namespace WechatExport
                                     var msgid = reader.GetInt32(4);
                                     if (type == 10000)
                                     {
-                                        sw.WriteLine(@"<tr><td width=""80"">&nbsp;</td><td width=""140"">&nbsp;</td><td>系统消息: " + message + @"</td></tr>");
+                                        sw.WriteLine(@"<tr><td width=""80"">&nbsp;</td><td width=""100"">&nbsp;</td><td>系统消息: " + message + @"</td></tr>");
                                         continue;
                                     }
                                     var ts = "";
@@ -389,15 +389,15 @@ namespace WechatExport
                                     }
                                     else if (type == 47)
                                     {
-                                        var match = Regex.Match(message.Replace(" ",""), @"cdnurl=""(.+?)""");
+                                        var match = Regex.Match(message, @"cdnurl ?= ?""(.+?)""");
                                         if (match.Success)
                                         {
-                                            var localfile = match.Groups[1].Value;
+                                            var localfile = RemoveCdata( match.Groups[1].Value);
                                             var match2 = Regex.Match(localfile, @"\/(\w+?)\/\w*$");
                                             if (!match2.Success) localfile = RandomString(10);
                                             else localfile = match2.Groups[1].Value;
                                             emojidown.Add(new DownloadTask() { url = match.Groups[1].Value, filename = localfile + ".gif" });
-                                            message = "<img src=\"Emoji/" + localfile + ".gif\" />";
+                                            message = "<img src=\"Emoji/" + localfile + ".gif\" style=\"max-width:100px;max-height:60px\" />";
                                         }
                                         else message = "[表情]";
                                     }
@@ -415,24 +415,56 @@ namespace WechatExport
                                     {
                                         var hasthum = RequireResource(Path.Combine(userBase, "Img", table, msgid + ".pic_thum"), Path.Combine(assetsdir, msgid + "_thum.jpg"));
                                         var haspic = RequireResource(Path.Combine(userBase, "Img", table, msgid + ".pic"), Path.Combine(assetsdir, msgid + ".jpg"));
-                                        if (hasthum && haspic) message = "<a href=\"" + id + "_files/" + msgid + ".jpg\"><img src=\"" + id + "_files/" + msgid + "_thum.jpg\" /></a>";
-                                        else if (hasthum) message = "<img src=\"" + id + "_files/" + msgid + "_thum.jpg\" />";
-                                        else if (haspic) message = "<img src=\"" + id + "_files/" + msgid + ".jpg\" />";
+                                        if (hasthum && haspic) message = "<a href=\"" + id + "_files/" + msgid + ".jpg\"><img src=\"" + id + "_files/" + msgid + "_thum.jpg\" style=\"max-width:100px;max-height:60px\" /></a>";
+                                        else if (hasthum) message = "<img src=\"" + id + "_files/" + msgid + "_thum.jpg\" style=\"max-width:100px;max-height:60px\" />";
+                                        else if (haspic) message = "<img src=\"" + id + "_files/" + msgid + ".jpg\" style=\"max-width:100px;max-height:60px\" />";
                                         else message = "[图片]";
                                     }
-                                    else if (type == 48) message = "[位置]";
+                                    else if (type == 48)
+                                    {
+                                        var match1 = Regex.Match(message, @"x ?= ?""(.+?)""");
+                                        var match2 = Regex.Match(message, @"y ?= ?""(.+?)""");
+                                        var match3 = Regex.Match(message, @"label ?= ?""(.+?)""");
+                                        if (match1.Success && match2.Success && match3.Success) message = "[位置 (" + RemoveCdata( match2.Groups[1].Value) + "," + RemoveCdata(match1.Groups[1].Value) + ") " + RemoveCdata(match3.Groups[1].Value) + "]";
+                                        else message = "[位置]";
+                                    }
                                     else if (type == 49)
                                     {
                                         if (message.Contains("<type>2001<")) message = "[红包]";
                                         else if (message.Contains("<type>2000<")) message = "[转账]";
                                         else if (message.Contains("<type>17<")) message = "[实时位置共享]";
                                         else if (message.Contains("<type>6<")) message = "[文件]";
-                                        else message = "[链接]";
+                                        else
+                                        {
+                                            var match1 = Regex.Match(message, @"<title>(.+?)<\/title>");
+                                            var match2 = Regex.Match(message, @"<des>(.*?)<\/des>");
+                                            var match3 = Regex.Match(message, @"<url>(.+?)<\/url>");
+                                            var match4 = Regex.Match(message, @"<thumburl>(.+?)<\/thumburl>");
+                                            if (match1.Success && match3.Success)
+                                            {
+                                                message = "";
+                                                if (match4.Success) message += "<img src=\"" + RemoveCdata(match4.Groups[1].Value) + "\" style=\"float:left;max-width:100px;max-height:60px\" />";
+                                                message += "<a href=\"" + RemoveCdata(match3.Groups[1].Value) + "\"><b>" + RemoveCdata(match1.Groups[1].Value) + "</b></a>";
+                                                if (match2.Success) message += "</br>" + RemoveCdata(match2.Groups[1].Value);
+                                            }
+                                            else message = "[链接]";
+                                        }
                                     }
-                                    else if (type == 42) message = "[名片]";
+                                    else if (type == 42)
+                                    {
+                                        var match1 = Regex.Match(message, "nickname ?= ?\"(.+?)\"");
+                                        var match2=Regex.Match(message, "smallheadimgurl ?= ?\"(.+?)\"");
+                                        if (match1.Success)
+                                        {
+                                            message = "";
+                                            if(match2.Success)message+= "<img src=\"" + RemoveCdata(match2.Groups[1].Value) + "\" style=\"float:left;max-width:100px;max-height:60px\" />";
+                                            message += "[名片] " + RemoveCdata(match1.Groups[1].Value);
+                                        }
+                                        else message = "[名片]";
+                                    }
                                     else message = SafeHTML(message);
 
-                                    ts += @"<td width=""140"" align=""center"">" + FromUnixTime(unixtime).ToLocalTime().ToString() + "</td>";
+                                    ts += @"<td width=""100"" align=""center"">" + FromUnixTime(unixtime).ToLocalTime().ToString() + "</td>";
                                     ts += @"<td>" + message + @"</td></tr>";
                                     sw.WriteLine(ts);
                                     count++;
@@ -568,6 +600,12 @@ namespace WechatExport
             s = s.Replace("\r", "<br/>");
             s = s.Replace("\n", "<br/>");
             return s;
+        }
+
+        public static string RemoveCdata(string str)
+        {
+            if (str.StartsWith("<![CDATA[") && str.EndsWith("]]>")) return str.Substring(9, str.Length - 12);
+            return str;
         }
 
         public static string DisplayTime(int ms)
