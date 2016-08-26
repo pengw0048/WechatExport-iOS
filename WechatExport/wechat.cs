@@ -280,10 +280,10 @@ namespace WechatExport
                                 else if (type == 48) message = "[位置]";
                                 else if (type == 49)
                                 {
-                                    if (message.Contains("<type>2001<")) message = "[红包]";
-                                    else if (message.Contains("<type>2000<")) message = "[转账]";
-                                    else if (message.Contains("<type>17<")) message = "[实时位置共享]";
-                                    else if (message.Contains("<type>6<")) message = "[文件]";
+                                    if (message.Contains("<type>2001<")|| message.Contains("<type><![CDATA[2001]]><")) message = "[红包]";
+                                    else if (message.Contains("<type>2000<") || message.Contains("<type><![CDATA[2000]]><")) message = "[转账]";
+                                    else if (message.Contains("<type>17<") || message.Contains("<type><![CDATA[17]]><")) message = "[实时位置共享]";
+                                    else if (message.Contains("<type>6<") || message.Contains("<type><![CDATA[6]]><")) message = "[文件]";
                                     else message = "[链接]";
                                 }
                                 else if (type == 42) message = "[名片]";
