@@ -445,7 +445,7 @@ namespace WechatExport
                                                 message = "";
                                                 if (match4.Success) message += "<img src=\"" + RemoveCdata(match4.Groups[1].Value) + "\" style=\"float:left;max-width:100px;max-height:60px\" />";
                                                 message += "<a href=\"" + RemoveCdata(match3.Groups[1].Value) + "\"><b>" + RemoveCdata(match1.Groups[1].Value) + "</b></a>";
-                                                if (match2.Success) message += "</br>" + RemoveCdata(match2.Groups[1].Value);
+                                                if (match2.Success) message += "<br />" + RemoveCdata(match2.Groups[1].Value);
                                             }
                                             else message = "[链接]";
                                         }
@@ -464,7 +464,7 @@ namespace WechatExport
                                     }
                                     else message = SafeHTML(message);
 
-                                    ts += @"<td width=""100"" align=""center"">" + FromUnixTime(unixtime).ToLocalTime().ToString() + "</td>";
+                                    ts += @"<td width=""100"" align=""center"">" + FromUnixTime(unixtime).ToLocalTime().ToString().Replace(" ","<br />") + "</td>";
                                     ts += @"<td>" + message + @"</td></tr>";
                                     sw.WriteLine(ts);
                                     count++;
