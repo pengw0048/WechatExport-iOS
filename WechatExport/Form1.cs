@@ -312,6 +312,7 @@ namespace WechatExport
                 List<string> chats;
                 wechat.GetChatSessions(conn, out chats);
                 AddLog("找到" + chats.Count + "个对话");
+                var emojidown = new HashSet<DownloadTask>();
                 foreach (var chat in chats)
                 {
                     var hash = chat;
@@ -333,8 +334,10 @@ namespace WechatExport
                     }else if(radioButton3.Checked)
                     {
                         int count;
-                        if (wechat.SaveHtmlRecord(conn, userBase, userSaveBase, displayname, id, myself, chat, friend, friends, out count)) AddLog("成功处理" + count + "条");
+                        HashSet<DownloadTask> _emojidown;
+                        if (wechat.SaveHtmlRecord(conn, userBase, userSaveBase, displayname, id, myself, chat, friend, friends, out count, out _emojidown)) AddLog("成功处理" + count + "条");
                         else AddLog("失败");
+                        emojidown.UnionWith(_emojidown);
                     }
                 }
 
@@ -365,6 +368,22 @@ namespace WechatExport
                         File.Copy("DefaultProfileHead@2x.png", Path.Combine(portraitdir, "DefaultProfileHead@2x.png"));
                     }
                     catch (Exception) { }
+                    AddLog("下载完毕");
+                }
+                var emojidir= Path.Combine(userSaveBase, "Emoji");
+                Directory.CreateDirectory(emojidir);
+                if (emojidown!=null && emojidown.Count > 0)
+                {
+                    AddLog("下载" + emojidown.Count + "个表情");
+                    using (var wc = new WebClient())
+                        foreach (var item in emojidown)
+                        {
+                            try
+                            {
+                                wc.DownloadFile(item.url, Path.Combine(emojidir, item.filename));
+                            }
+                            catch (Exception) { }
+                        }
                     AddLog("下载完毕");
                 }
                 AddLog("完成当前账号");
@@ -412,25 +431,5 @@ namespace WechatExport
             PostLog(msg);
         }
 
-        class DownloadTask:IEquatable<DownloadTask>
-        {
-            public string url;
-            public string filename;
-
-            public bool Equals(DownloadTask other)
-            {
-                return url == other.url && filename == other.filename;
-            }
-
-            public override bool Equals(object other)
-            {
-                return other is DownloadTask && Equals((DownloadTask)other);
-            }
-
-            public override int GetHashCode()
-            {
-                return url.GetHashCode() * 1000000009 + filename.GetHashCode();
-            }
-        }
     }
 }

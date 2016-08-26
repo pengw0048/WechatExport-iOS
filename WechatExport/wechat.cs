@@ -301,9 +301,10 @@ namespace WechatExport
             return succ;
         }
 
-        public bool SaveHtmlRecord(SQLiteConnection conn, string userBase, string path,string displayname,string id, Friend myself, string table, Friend friend, Dictionary<string, Friend> friends, out int count)
+        public bool SaveHtmlRecord(SQLiteConnection conn, string userBase, string path,string displayname,string id, Friend myself, string table, Friend friend, Dictionary<string, Friend> friends, out int count, out HashSet<DownloadTask> emojidown)
         {
             bool succ = false;
+            emojidown = new HashSet<DownloadTask>();
             count = 0;
             try
             {
@@ -386,8 +387,29 @@ namespace WechatExport
                                             message = "<audio controls><source src=\"" + id + "_files/" + msgid + ".mp3\" type=\"audio/mpeg\"><a href=\"" + id + "_files/" + msgid + ".mp3\">播放</a></audio>";
                                         }
                                     }
-                                    else if (type == 47) message = "[表情]";
-                                    else if (type == 62) message = "[小视频]";
+                                    else if (type == 47)
+                                    {
+                                        var match = Regex.Match(message.Replace(" ",""), @"cdnurl=""(.+?)""");
+                                        if (match.Success)
+                                        {
+                                            var localfile = match.Groups[1].Value;
+                                            var match2 = Regex.Match(localfile, @"\/(\w+?)\/\w*$");
+                                            if (!match2.Success) localfile = RandomString(10);
+                                            else localfile = match2.Groups[1].Value;
+                                            emojidown.Add(new DownloadTask() { url = match.Groups[1].Value, filename = localfile + ".gif" });
+                                            message = "<img src=\"Emoji/" + localfile + ".gif\" />";
+                                        }
+                                        else message = "[表情]";
+                                    }
+                                    else if (type == 62)
+                                    {
+                                        var hasthum = RequireResource(Path.Combine(userBase, "Video", table, msgid + ".video_thum"), Path.Combine(assetsdir, msgid + "_thum.jpg"));
+                                        var hasvid = RequireResource(Path.Combine(userBase, "Video", table, msgid + ".mp4"), Path.Combine(assetsdir, msgid + ".mp4"));
+                                        if (hasthum && hasvid) message = "<video controls poster=\"" + id + "_files/" + msgid + "_thum.jpg\"><source src=\"" + id + "_files/" + msgid + ".mp4\" type=\"video/mp4\"><a href=\"" + id + "_files/" + msgid + ".mp4\">播放</a></video>";
+                                        else if (hasthum) message = "<img src=\"" + id + "_files/" + msgid + "_thum.jpg\" /> （视频丢失）";
+                                        else if (hasvid) message = "<video controls><source src=\"" + id + "_files/" + msgid + ".mp4\" type=\"video/mp4\"><a href=\"" + id + "_files/" + msgid + ".mp4\">播放</a></video>";
+                                        else message = "[视频]";
+                                    }
                                     else if (type == 50) message = "[视频/语音通话]";
                                     else if (type == 3)
                                     {
@@ -473,7 +495,7 @@ namespace WechatExport
             if (fileDict.ContainsKey(vpath))
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(dest));
-                File.Copy(GetBackupFilePath(vpath), dest);
+                if(!File.Exists(dest)) File.Copy(GetBackupFilePath(vpath), dest);
                 return true;
             }
             else return false;
@@ -563,6 +585,13 @@ namespace WechatExport
             p.Start();
             p.WaitForExit();
         }
+        private static Random random = new Random();
+        public static string RandomString(int length)
+        {
+            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            return new string(Enumerable.Repeat(chars, length)
+              .Select(s => s[random.Next(s.Length)]).ToArray());
+        }
     }
 
     public class Friend
@@ -630,4 +659,26 @@ namespace WechatExport
             return dict.ContainsKey(key);
         }
     }
+
+    public class DownloadTask : IEquatable<DownloadTask>
+    {
+        public string url;
+        public string filename;
+
+        public bool Equals(DownloadTask other)
+        {
+            return url == other.url && filename == other.filename;
+        }
+
+        public override bool Equals(object other)
+        {
+            return other is DownloadTask && Equals((DownloadTask)other);
+        }
+
+        public override int GetHashCode()
+        {
+            return url.GetHashCode() * 1000000009 + filename.GetHashCode();
+        }
+    }
+
 }
