@@ -358,7 +358,7 @@ namespace WechatExport
                                                 message = message.Substring(enter + 2);
                                                 if (chatremark.ContainsKeySafe(txtsender)) txtsender = chatremark[txtsender];
                                                 else if (friends.ContainsKeySafe(txtsender)) txtsender = friends[txtsender].DisplayName();
-                                                if (friends.ContainsKeySafe(senderid)) ts += @"<tr><td width=""80"" align=""center""><img src=""Portrait/" + friends[senderid] + @""" width=""50"" height=""50"" /><br />" + txtsender + @"</td>";
+                                                if (friends.ContainsKeySafe(senderid)) ts += @"<tr><td width=""80"" align=""center""><img src=""Portrait/" + friends[senderid].FindPortrait() + @""" width=""50"" height=""50"" /><br />" + txtsender + @"</td>";
                                                 else ts += @"<tr><td width=""80"" align=""center""><img src=""Portrait/DefaultProfileHead@2x.png"" width=""50"" height=""50"" /><br />" + txtsender + @"</td>";
                                             }
                                             else ts += @"<tr><td width=""80"" align=""center"">&nbsp;</td>";
