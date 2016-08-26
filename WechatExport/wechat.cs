@@ -10,6 +10,7 @@ using System.Text.RegularExpressions;
 using System.Linq;
 using System.Data.SQLite;
 using System.Text;
+using System.Diagnostics;
 
 namespace WechatExport
 {
@@ -300,7 +301,7 @@ namespace WechatExport
             return succ;
         }
 
-        public bool SaveHtmlRecord(SQLiteConnection conn,string path,string displayname,string id, Friend myself, string table, Friend friend, Dictionary<string, Friend> friends, out int count)
+        public bool SaveHtmlRecord(SQLiteConnection conn, string userBase, string path,string displayname,string id, Friend myself, string table, Friend friend, Dictionary<string, Friend> friends, out int count)
         {
             bool succ = false;
             count = 0;
@@ -313,7 +314,7 @@ namespace WechatExport
                 }
                 using (var cmd = new SQLiteCommand(conn))
                 {
-                    cmd.CommandText = "SELECT CreateTime,Message,Des,Type FROM Chat_" + table;
+                    cmd.CommandText = "SELECT CreateTime,Message,Des,Type,MesLocalID FROM Chat_" + table;
                     using (var reader = cmd.ExecuteReader())
                     {
                         var assetsdir = Path.Combine(path, id + "_files");
@@ -330,6 +331,7 @@ namespace WechatExport
                                     var message = reader.GetString(1);
                                     var des = reader.GetInt32(2);
                                     var type = reader.GetInt32(3);
+                                    var msgid = reader.GetInt32(4);
                                     if (type == 10000)
                                     {
                                         sw.WriteLine(@"<tr><td width=""80"">&nbsp;</td><td width=""140"">&nbsp;</td><td>系统消息: " + message + @"</td></tr>");
@@ -367,7 +369,23 @@ namespace WechatExport
                                         else if (friend != null) ts += @"<tr><td width=""80"" align=""center""><img src=""Portrait/" + friend.FindPortrait() + @""" width=""50"" height=""50"" /><br />" + friend.DisplayName() + @"</td>";
                                         else ts += @"<tr><td width=""80"" align=""center""><img src=""Portrait/DefaultProfileHead@2x.png"" width=""50"" height=""50"" /><br />" + displayname + @"</td>";
                                     }
-                                    if (type == 34) message = "[语音]";
+                                    if (type == 34)
+                                    {
+                                        var voicelen = -1;
+                                        var match = Regex.Match(message, @"voicelength=""(\d+?)""");
+                                        if (match.Success) voicelen = int.Parse(match.Groups[1].Value);
+                                        var audiosrc = GetBackupFilePath(Path.Combine(userBase, "Audio", table, msgid + ".aud"));
+                                        if (audiosrc == null)
+                                        {
+                                            message = voicelen == -1 ? "语音" : "[语音 " + DisplayTime(voicelen) + "]";
+                                        }
+                                        else
+                                        {
+                                            ShellWait("silk_v3_decoder.exe", "\"" + audiosrc + "\" 1.pcm");
+                                            ShellWait("lame.exe", "-r -s 24000 --preset voice 1.pcm \"" + Path.Combine(assetsdir, msgid + ".mp3") + "\"");
+                                            message = "<audio controls><source src=\"" + id + "_files/" + msgid + ".mp3\" type=\"audio/mpeg\"><a href=\"" + id + "_files/" + msgid + ".mp3\">播放</a></audio>";
+                                        }
+                                    }
                                     else if (type == 47) message = "[表情]";
                                     else if (type == 62) message = "[小视频]";
                                     else if (type == 50) message = "[视频/语音通话]";
@@ -441,6 +459,17 @@ namespace WechatExport
             return UIDs.ToList();
         }
 
+        public bool RequireResource(string vpath,string dest)
+        {
+            if (fileDict.ContainsKey(vpath))
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(dest));
+                File.Copy(GetBackupFilePath(vpath), dest);
+                return true;
+            }
+            else return false;
+        }
+
         public static string CreateMD5(string input)
         {
             // Use input string to calculate MD5 hash
@@ -510,6 +539,21 @@ namespace WechatExport
             return s;
         }
 
+        public static string DisplayTime(int ms)
+        {
+            if (ms < 1000) return "1\"";
+            return Math.Round((double)ms) + "\"";
+        }
+
+        public void ShellWait(string file,string args)
+        {
+            var p = new Process();
+            p.StartInfo.FileName = file;
+            p.StartInfo.Arguments = args;
+            p.StartInfo.WindowStyle = (ProcessWindowStyle.Hidden);
+            p.Start();
+            p.WaitForExit();
+        }
     }
 
     public class Friend

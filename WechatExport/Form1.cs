@@ -333,7 +333,7 @@ namespace WechatExport
                     }else if(radioButton3.Checked)
                     {
                         int count;
-                        if (wechat.SaveHtmlRecord(conn, userSaveBase, displayname, id, myself, chat, friend, friends, out count)) AddLog("成功处理" + count + "条");
+                        if (wechat.SaveHtmlRecord(conn, userBase, userSaveBase, displayname, id, myself, chat, friend, friends, out count)) AddLog("成功处理" + count + "条");
                         else AddLog("失败");
                     }
                 }
