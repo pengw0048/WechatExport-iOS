@@ -377,7 +377,7 @@ namespace WechatExport
                                         var audiosrc = GetBackupFilePath(Path.Combine(userBase, "Audio", table, msgid + ".aud"));
                                         if (audiosrc == null)
                                         {
-                                            message = voicelen == -1 ? "语音" : "[语音 " + DisplayTime(voicelen) + "]";
+                                            message = voicelen == -1 ? "[语音]" : "[语音 " + DisplayTime(voicelen) + "]";
                                         }
                                         else
                                         {
@@ -389,7 +389,15 @@ namespace WechatExport
                                     else if (type == 47) message = "[表情]";
                                     else if (type == 62) message = "[小视频]";
                                     else if (type == 50) message = "[视频/语音通话]";
-                                    else if (type == 3) message = "[图片]";
+                                    else if (type == 3)
+                                    {
+                                        var hasthum = RequireResource(Path.Combine(userBase, "Img", table, msgid + ".pic_thum"), Path.Combine(assetsdir, msgid + "_thum.jpg"));
+                                        var haspic = RequireResource(Path.Combine(userBase, "Img", table, msgid + ".pic"), Path.Combine(assetsdir, msgid + ".jpg"));
+                                        if (hasthum && haspic) message = "<a href=\"" + id + "_files/" + msgid + ".jpg\"><img src=\"" + id + "_files/" + msgid + "_thum.jpg\" /></a>";
+                                        else if (hasthum) message = "<img src=\"" + id + "_files/" + msgid + "_thum.jpg\" />";
+                                        else if (haspic) message = "<img src=\"" + id + "_files/" + msgid + ".jpg\" />";
+                                        else message = "[图片]";
+                                    }
                                     else if (type == 48) message = "[位置]";
                                     else if (type == 49)
                                     {
@@ -461,6 +469,7 @@ namespace WechatExport
 
         public bool RequireResource(string vpath,string dest)
         {
+            vpath = vpath.Replace('\\', '/');
             if (fileDict.ContainsKey(vpath))
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(dest));

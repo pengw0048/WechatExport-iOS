@@ -360,7 +360,11 @@ namespace WechatExport
                             }
                             catch (Exception) { }
                         }
-                    File.Copy("DefaultProfileHead@2x.png", Path.Combine(portraitdir, "DefaultProfileHead@2x.png"));
+                    try
+                    {
+                        File.Copy("DefaultProfileHead@2x.png", Path.Combine(portraitdir, "DefaultProfileHead@2x.png"));
+                    }
+                    catch (Exception) { }
                     AddLog("下载完毕");
                 }
                 AddLog("完成当前账号");
