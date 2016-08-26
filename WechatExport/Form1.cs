@@ -351,41 +351,32 @@ namespace WechatExport
                     if (tfriend.Portrait != null && tfriend.Portrait != "") downlist.Add(new DownloadTask() { url = tfriend.Portrait, filename = tfriend.ID() + ".jpg" });
                     //if (tfriend.PortraitHD != null && tfriend.PortraitHD != "") downlist.Add(new DownloadTask() { url = tfriend.PortraitHD, filename = tfriend.ID() + "_hd.jpg" });
                 }
+                var downloader = new Downloader(6);
                 if (downlist.Count > 0)
                 {
                     AddLog("下载" + downlist.Count + "个头像");
-                    using (var wc = new WebClient())
-                        foreach (var item in downlist)
-                        {
-                            try
-                            {
-                                wc.DownloadFile(item.url, Path.Combine(portraitdir, item.filename));
-                            }
-                            catch (Exception) { }
-                        }
+                    foreach (var item in downlist)
+                    {
+                            downloader.AddTask(item.url, Path.Combine(portraitdir, item.filename));
+                    }
                     try
                     {
                         File.Copy("DefaultProfileHead@2x.png", Path.Combine(portraitdir, "DefaultProfileHead@2x.png"));
                     }
                     catch (Exception) { }
-                    AddLog("下载完毕");
                 }
                 var emojidir= Path.Combine(userSaveBase, "Emoji");
                 Directory.CreateDirectory(emojidir);
                 if (emojidown!=null && emojidown.Count > 0)
                 {
                     AddLog("下载" + emojidown.Count + "个表情");
-                    using (var wc = new WebClient())
                         foreach (var item in emojidown)
                         {
-                            try
-                            {
-                                wc.DownloadFile(item.url, Path.Combine(emojidir, item.filename));
-                            }
-                            catch (Exception) { }
+                                downloader.AddTask(item.url, Path.Combine(emojidir, item.filename));
                         }
-                    AddLog("下载完毕");
                 }
+                downloader.StartDownload();
+                downloader.WaitToEnd();
                 AddLog("完成当前账号");
             }
             AddLog("任务结束");
@@ -431,5 +422,52 @@ namespace WechatExport
             PostLog(msg);
         }
 
+    }
+    class Downloader
+    {
+        private List<DownloadTask> tasks = new List<DownloadTask>();
+        private int pos = 0;
+        private object alock = new object();
+        private Thread[] threads;
+        public Downloader(int num)
+        {
+            threads = new Thread[num];
+            for (int i = 0; i < num; i++) threads[i] = new Thread(new ThreadStart(run));
+        }
+        public void AddTask(string url,string filename)
+        {
+            tasks.Add(new DownloadTask() { filename = filename, url = url });
+        }
+        private void run()
+        {
+            int work;
+            var wc = new WebClient();
+            while (true)
+            {
+                lock (alock)
+                    work = pos++;
+                if (pos >= tasks.Count) break;
+                try
+                {
+                    wc.DownloadFile(tasks[work].url, tasks[work].filename);
+                }
+                catch (Exception) { }
+            }
+            wc.Dispose();
+        }
+        public void StartDownload()
+        {
+            foreach (var thread in threads)
+            {
+                thread.Start();
+            }
+        }
+        public void WaitToEnd()
+        {
+            foreach (var thread in threads)
+            {
+                thread.Join();
+            }
+        }
     }
 }
