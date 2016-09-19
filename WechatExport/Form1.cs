@@ -36,11 +36,11 @@ namespace WechatExport
             backups.Clear();
             comboBox1.Items.Clear();
             string s = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            s = Path.Combine(s, "Apple Computer", "MobileSync", "Backup");
+            s = MyPath.Combine(s, "Apple Computer", "MobileSync", "Backup");
             try
             {
                 DirectoryInfo d = new DirectoryInfo(s);
-                foreach (DirectoryInfo sd in d.EnumerateDirectories())
+                foreach (DirectoryInfo sd in d.GetDirectories())
                 {
                     LoadManifest(sd.FullName);
                 }
@@ -468,6 +468,18 @@ namespace WechatExport
             {
                 thread.Join();
             }
+        }
+    }
+
+    public static class MyPath
+    {
+        public static string Combine(string a, string b, string c)
+        {
+            return Path.Combine(Path.Combine(a, b), c);
+        }
+        public static string Combine(string a, string b, string c, string d)
+        {
+            return Path.Combine(MyPath.Combine(a, b, c), d);
         }
     }
 }

@@ -32,7 +32,7 @@ namespace WechatExport
             try
             {
                 conn = new SQLiteConnection();
-                conn.ConnectionString = "data source=" + GetBackupFilePath(Path.Combine(userBase, "DB", "MM.sqlite")) + ";version=3";
+                conn.ConnectionString = "data source=" + GetBackupFilePath(MyPath.Combine(userBase, "DB", "MM.sqlite")) + ";version=3";
                 conn.Open();
                 succ = true;
             }
@@ -47,7 +47,7 @@ namespace WechatExport
             try
             {
                 conn = new SQLiteConnection();
-                conn.ConnectionString = "data source=" + GetBackupFilePath(Path.Combine(userBase, "DB", "WCDB_Contact.sqlite")) + ";version=3";
+                conn.ConnectionString = "data source=" + GetBackupFilePath(MyPath.Combine(userBase, "DB", "WCDB_Contact.sqlite")) + ";version=3";
                 conn.Open();
                 succ = true;
             }
@@ -375,7 +375,7 @@ namespace WechatExport
                                         var voicelen = -1;
                                         var match = Regex.Match(message, @"voicelength=""(\d+?)""");
                                         if (match.Success) voicelen = int.Parse(match.Groups[1].Value);
-                                        var audiosrc = GetBackupFilePath(Path.Combine(userBase, "Audio", table, msgid + ".aud"));
+                                        var audiosrc = GetBackupFilePath(MyPath.Combine(userBase, "Audio", table, msgid + ".aud"));
                                         if (audiosrc == null)
                                         {
                                             message = voicelen == -1 ? "[语音]" : "[语音 " + DisplayTime(voicelen) + "]";
@@ -403,8 +403,8 @@ namespace WechatExport
                                     }
                                     else if (type == 62)
                                     {
-                                        var hasthum = RequireResource(Path.Combine(userBase, "Video", table, msgid + ".video_thum"), Path.Combine(assetsdir, msgid + "_thum.jpg"));
-                                        var hasvid = RequireResource(Path.Combine(userBase, "Video", table, msgid + ".mp4"), Path.Combine(assetsdir, msgid + ".mp4"));
+                                        var hasthum = RequireResource(MyPath.Combine(userBase, "Video", table, msgid + ".video_thum"), Path.Combine(assetsdir, msgid + "_thum.jpg"));
+                                        var hasvid = RequireResource(MyPath.Combine(userBase, "Video", table, msgid + ".mp4"), Path.Combine(assetsdir, msgid + ".mp4"));
                                         if (hasthum && hasvid) message = "<video controls poster=\"" + id + "_files/" + msgid + "_thum.jpg\"><source src=\"" + id + "_files/" + msgid + ".mp4\" type=\"video/mp4\"><a href=\"" + id + "_files/" + msgid + ".mp4\">播放</a></video>";
                                         else if (hasthum) message = "<img src=\"" + id + "_files/" + msgid + "_thum.jpg\" /> （视频丢失）";
                                         else if (hasvid) message = "<video controls><source src=\"" + id + "_files/" + msgid + ".mp4\" type=\"video/mp4\"><a href=\"" + id + "_files/" + msgid + ".mp4\">播放</a></video>";
@@ -413,8 +413,8 @@ namespace WechatExport
                                     else if (type == 50) message = "[视频/语音通话]";
                                     else if (type == 3)
                                     {
-                                        var hasthum = RequireResource(Path.Combine(userBase, "Img", table, msgid + ".pic_thum"), Path.Combine(assetsdir, msgid + "_thum.jpg"));
-                                        var haspic = RequireResource(Path.Combine(userBase, "Img", table, msgid + ".pic"), Path.Combine(assetsdir, msgid + ".jpg"));
+                                        var hasthum = RequireResource(MyPath.Combine(userBase, "Img", table, msgid + ".pic_thum"), Path.Combine(assetsdir, msgid + "_thum.jpg"));
+                                        var haspic = RequireResource(MyPath.Combine(userBase, "Img", table, msgid + ".pic"), Path.Combine(assetsdir, msgid + ".jpg"));
                                         if (hasthum && haspic) message = "<a href=\"" + id + "_files/" + msgid + ".jpg\"><img src=\"" + id + "_files/" + msgid + "_thum.jpg\" style=\"max-width:100px;max-height:60px\" /></a>";
                                         else if (hasthum) message = "<img src=\"" + id + "_files/" + msgid + "_thum.jpg\" style=\"max-width:100px;max-height:60px\" />";
                                         else if (haspic) message = "<img src=\"" + id + "_files/" + msgid + ".jpg\" style=\"max-width:100px;max-height:60px\" />";
