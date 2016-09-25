@@ -64,24 +64,17 @@ namespace WechatExport
                 {
                     var dd = pr.ReadObject(sw);
                     var objs = dd["$objects"] as object[];
-                    if (objs[2].GetType() == typeof(string) && objs[3].GetType() == typeof(string))
+                    var dict = GetCFUID(objs[1] as Dictionary<object, object>);
+                    if (dict.ContainsKey("UsrName") && dict.ContainsKey("NickName"))
                     {
-                        var tuserid = objs[2] as string;
-                        var tusername = objs[3] as string;
-                        if (tuserid != "" && tusername != "")
-                        {
-                            friend.UsrName = tuserid;
-                            friend.NickName = tusername;
-                            succ = true;
-                        }
+                        friend.UsrName = objs[dict["UsrName"]] as string;
+                        friend.UsrName = objs[dict["NickName"]] as string;
+                        succ = true;
                     }
-                    for (int i = 1; i < objs.Length; i++)
-                        if (objs[i - 1].GetType() == typeof(string) && objs[i - 1] as string == "0" && objs[i].GetType() == typeof(string))
-                            if (Regex.Match(objs[i] as string, @"^[a-zA-Z][\w-_]+$").Success)
-                            {
-                                friend.alias = objs[i] as string;
-                                break;
-                            }
+                    if (dict.ContainsKey("AliasName"))
+                    {
+                        friend.alias = objs[dict["AliasName"]] as string;
+                    }
                     for(int i = 0; i < objs.Length; i++)
                         if(objs[i].GetType()==typeof(string) && (objs[i] as string).StartsWith("http://wx.qlogo.cn/mmhead/"))
                         {
@@ -92,6 +85,22 @@ namespace WechatExport
             }
             catch (Exception) { }
             return succ;
+        }
+
+        Dictionary<string,int> GetCFUID(Dictionary<object, object> dict)
+        {
+            var ret = new Dictionary<string, int>();
+            foreach (var pair in dict)
+            {
+                if (pair.Value.GetType() != typeof(Dictionary<string, ulong>)) continue;
+                var content = pair.Value as Dictionary<string, ulong>;
+                foreach (var pair2 in content)
+                {
+                    if (pair2.Key != "CF$UID") continue;
+                    ret.Add((string)pair.Key, (int)pair2.Value);
+                }
+            }
+            return ret;
         }
 
         public bool GetFriends(SQLiteConnection conn, Friend myself, out List<Friend> friends)
