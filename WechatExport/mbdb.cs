@@ -307,7 +307,7 @@ namespace mbdbdump
 
                     rec.key = fileName.ToString();
 
-                    files.Add(rec);
+                    if(rec.Domain.EndsWith("com.tencent.xin") && (rec.Mode & 0xF000) == 0x8000) files.Add(rec);
                 }
 
                 return files;

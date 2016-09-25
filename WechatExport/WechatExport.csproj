@@ -71,6 +71,7 @@
     <Compile Include="plist.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Util.cs" />
     <Compile Include="wechat.cs" />
     <Compile Include="xdict.cs" />
     <EmbeddedResource Include="Form1.resx">

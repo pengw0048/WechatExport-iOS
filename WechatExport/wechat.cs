@@ -1,11 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Windows.Forms;
-using iphonebackupbrowser;
 using System.IO;
 using mbdbdump;
 using System.Runtime.Serialization.Plists;
-using System.Collections;
 using System.Text.RegularExpressions;
 using System.Linq;
 using System.Data.SQLite;
@@ -16,10 +13,10 @@ namespace WechatExport
 {
     class WeChatInterface
     {
-        public Dictionary<string, iPhoneFile> fileDict = null;
-        private iPhoneBackup currentBackup;
+        public Dictionary<string, string> fileDict = null;
+        private string currentBackup;
         private List<mbdb.MBFileRecord> files92;
-        public WeChatInterface(iPhoneBackup currentBackup, List<mbdb.MBFileRecord> files92)
+        public WeChatInterface(string currentBackup, List<mbdb.MBFileRecord> files92)
         {
             this.currentBackup = currentBackup;
             this.files92 = files92;
@@ -484,26 +481,15 @@ namespace WechatExport
         {
             vpath = vpath.Replace('\\', '/');
             if (!fileDict.ContainsKey(vpath)) return null;
-            var file = fileDict[vpath];
-            var ext = "";
-            return Path.Combine(currentBackup.path, file.Key + ext);
+            return Path.Combine(currentBackup, fileDict[vpath]);
         }
 
-        public void BuildFilesDictionary(iPhoneApp app)
+        public void BuildFilesDictionary()
         {
-            var dict = new Dictionary<string, iPhoneFile>();
-            foreach (var f in app.Files)
+            var dict = new Dictionary<string, string>();
+            foreach (var x in files92)
             {
-                var x = files92[int.Parse(f)];
-                var ff = new iPhoneFile()
-                {
-                    Key = x.key,
-                    Domain = x.Domain,
-                    Path = x.Path,
-                    ModificationTime = x.aTime,
-                    FileLength = x.FileLength
-                };
-                dict.Add(x.Path, ff);
+                dict.Add(x.Path, x.key);
             }
             this.fileDict = dict;
         }

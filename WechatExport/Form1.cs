@@ -4,12 +4,8 @@ using System.Windows.Forms;
 using iphonebackupbrowser;
 using System.IO;
 using mbdbdump;
-using System.Runtime.Serialization.Plists;
-using System.Collections;
 using System.Drawing;
 using System.Threading;
-using System.Text.RegularExpressions;
-using System.Linq;
 using System.Data.SQLite;
 using System.Net;
 using System.Web;
@@ -22,7 +18,6 @@ namespace WechatExport
         private List<iPhoneBackup> backups = new List<iPhoneBackup>();
         private List<mbdb.MBFileRecord> files92;
         private iPhoneBackup currentBackup = null;
-        private iPhoneApp weixinapp = null;
         private WeChatInterface wechat = null;
 
         public Form1()
@@ -100,7 +95,7 @@ namespace WechatExport
         {
             if (currentBackup == null)
                 return;
-            
+
             files92 = null;
             try
             {
@@ -108,11 +103,23 @@ namespace WechatExport
                 if (File.Exists(Path.Combine(backup.path, "Manifest.mbdb")))
                 {
                     files92 = mbdbdump.mbdb.ReadMBDB(backup.path);
-
-                    BinaryPlistReader az = new BinaryPlistReader();
-                    IDictionary er = az.ReadObject(Path.Combine(backup.path, "Manifest.plist"));
-
-                    parseAll92(er);
+                }
+                else if (File.Exists(Path.Combine(backup.path, "Manifest.db")))
+                {
+                    // iOS 10 support
+                }
+                if (files92 != null && files92.Count > 0)
+                {
+                    label2.Text = "正确";
+                    label2.ForeColor = Color.Green;
+                    button2.Enabled = true;
+                }
+                else
+                {
+                    currentBackup = null;
+                    label2.Text = "未找到";
+                    label2.ForeColor = Color.Red;
+                    button2.Enabled = false;
                 }
             }
             catch (InvalidOperationException ex)
@@ -125,70 +132,9 @@ namespace WechatExport
             }
         }
 
-        private class appFiles
-        {
-            public List<int> indexes = new List<int>();
-            public long FilesLength = 0;
-            public void add(int index, long length)
-            {
-                indexes.Add(index);
-                FilesLength += length;
-            }
-        }
-
-        private void parseAll92(IDictionary mbdb)
-        {
-            var sd = mbdb["Applications"] as Dictionary<object, object>;
-            if (sd == null)
-                return;
-            var filesByDomain = new Dictionary<string, appFiles>();
-            for (int i = 0; i < files92.Count; ++i)
-            {
-                if ((files92[i].Mode & 0xF000) == 0x8000)
-                {
-                    string d = files92[i].Domain;
-                    if (!filesByDomain.ContainsKey(d))
-                        filesByDomain.Add(d, new appFiles());
-
-                    filesByDomain[d].add(i, files92[i].FileLength);
-                }
-            }
-            foreach (var p in sd)
-            {
-                iPhoneApp app = new iPhoneApp();
-                app.Key = p.Key as string;
-                var zz = p.Value as IDictionary;
-                app.Identifier = zz["CFBundleIdentifier"] as string;
-                app.Container = zz["Path"] as string;
-                if (filesByDomain.ContainsKey("AppDomain-" + app.Key))
-                {
-                    app.Files = new List<String>();
-                    foreach (int i in filesByDomain["AppDomain-" + app.Key].indexes)
-                    {
-                        app.Files.Add(i.ToString());
-                    }
-                    app.FilesLength = filesByDomain["AppDomain-" + app.Key].FilesLength;
-                    filesByDomain.Remove("AppDomain-" + app.Key);
-                }
-                addApp(app);
-            }
-        }
-
-        private void addApp(iPhoneApp app)
-        {
-            if (app.Key == "com.tencent.xin")
-            {
-                weixinapp = app;
-                label2.Text = "正确";
-                label2.ForeColor = Color.Green;
-                button2.Enabled = true;
-            }
-        }
-
         private void beforeLoadManifest()
         {
             comboBox1.SelectedIndex = -1;
-            weixinapp = null;
             currentBackup = null;
             label2.Text = "未选择";
             label2.ForeColor = Color.Black;
@@ -219,11 +165,6 @@ namespace WechatExport
                 {
                     currentBackup = (iPhoneBackup)comboBox1.SelectedItem;
                     loadCurrentBackup();
-                    if (weixinapp == null)
-                    {
-                        label2.Text = "未找到";
-                        label2.ForeColor = Color.Red;
-                    }
                 }
                 return;
             }
@@ -275,8 +216,8 @@ namespace WechatExport
             var saveBase = textBox1.Text;
             Directory.CreateDirectory(saveBase);
             AddLog("分析文件夹结构");
-            wechat = new WeChatInterface(currentBackup, files92);
-            wechat.BuildFilesDictionary(weixinapp);
+            wechat = new WeChatInterface(currentBackup.path, files92);
+            wechat.BuildFilesDictionary();
             AddLog("查找UID");
             var UIDs = wechat.FindUIDs();
             AddLog("找到" + UIDs.Count + "个账号的消息记录");
@@ -417,69 +358,10 @@ namespace WechatExport
 
         private void button4_Click(object sender, EventArgs e)
         {
-            var msg = Interaction.InputBox("请填写遇到的问题，如果需要反馈，可留下联系方式。\r\n下方列表中的记录将会一并上传。");
+            var msg = Interaction.InputBox("请填写遇到的问题，如果需要反馈，可留下联系方式。");
             if (msg == null || msg == "") return;
             PostLog(msg);
         }
 
-    }
-    class Downloader
-    {
-        private List<DownloadTask> tasks = new List<DownloadTask>();
-        private int pos = 0;
-        private object alock = new object();
-        private Thread[] threads;
-        public Downloader(int num)
-        {
-            threads = new Thread[num];
-            for (int i = 0; i < num; i++) threads[i] = new Thread(new ThreadStart(run));
-        }
-        public void AddTask(string url,string filename)
-        {
-            tasks.Add(new DownloadTask() { filename = filename, url = url });
-        }
-        private void run()
-        {
-            int work;
-            var wc = new WebClient();
-            while (true)
-            {
-                lock (alock)
-                    work = pos++;
-                if (pos >= tasks.Count) break;
-                try
-                {
-                    wc.DownloadFile(tasks[work].url, tasks[work].filename);
-                }
-                catch (Exception) { }
-            }
-            wc.Dispose();
-        }
-        public void StartDownload()
-        {
-            foreach (var thread in threads)
-            {
-                thread.Start();
-            }
-        }
-        public void WaitToEnd()
-        {
-            foreach (var thread in threads)
-            {
-                thread.Join();
-            }
-        }
-    }
-
-    public static class MyPath
-    {
-        public static string Combine(string a, string b, string c)
-        {
-            return Path.Combine(Path.Combine(a, b), c);
-        }
-        public static string Combine(string a, string b, string c, string d)
-        {
-            return Path.Combine(MyPath.Combine(a, b, c), d);
-        }
     }
 }
