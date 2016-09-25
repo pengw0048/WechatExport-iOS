@@ -15,8 +15,8 @@ namespace WechatExport
     {
         public Dictionary<string, string> fileDict = null;
         private string currentBackup;
-        private List<mbdb.MBFileRecord> files92;
-        public WeChatInterface(string currentBackup, List<mbdb.MBFileRecord> files92)
+        private List<MBFileRecord> files92;
+        public WeChatInterface(string currentBackup, List<MBFileRecord> files92)
         {
             this.currentBackup = currentBackup;
             this.files92 = files92;

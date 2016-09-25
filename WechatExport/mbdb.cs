@@ -202,37 +202,6 @@ namespace mbdbdump
         }
 
 
-        public struct MBFileRecord
-        {
-            public string key;              // filename in the backup directory: SHA.1 of Domain + "-" + Path
-
-            public string Domain;
-            public string Path;
-            public string LinkTarget;
-            public string DataHash;         // SHA.1 for 'important' files
-            public string alwaysNull;
-
-            public string data;             // the 40-byte block (some fields still need to be explained)
-
-            public ushort Mode;             // 4xxx=dir, 8xxx=file, Axxx=symlink
-            public int alwaysZero;
-            public uint inode;              // without any doubt
-            public uint UserId;             // 501/501 for apps
-            public uint GroupId;
-            public DateTime aTime;          // aTime or bTime is the former ModificationTime
-            public DateTime bTime;
-            public DateTime cTime;
-            public long FileLength;         // always 0 for link or directory
-            public byte flag;               // 0 for link, 4 for directory, otherwise values unknown (4 3 1)
-            public byte PropertyCount;
-
-            public struct Property
-            {
-                public string Name;
-                public string Value;
-            };
-            public Property[] Properties;
-        }
 
 
         public static List<MBFileRecord> ReadMBDB(string BackupPath)
@@ -320,5 +289,37 @@ namespace mbdbdump
             return null;
         }
 
+    }
+
+    public struct MBFileRecord
+    {
+        public string key;              // filename in the backup directory: SHA.1 of Domain + "-" + Path
+
+        public string Domain;
+        public string Path;
+        public string LinkTarget;
+        public string DataHash;         // SHA.1 for 'important' files
+        public string alwaysNull;
+
+        public string data;             // the 40-byte block (some fields still need to be explained)
+
+        public ushort Mode;             // 4xxx=dir, 8xxx=file, Axxx=symlink
+        public int alwaysZero;
+        public uint inode;              // without any doubt
+        public uint UserId;             // 501/501 for apps
+        public uint GroupId;
+        public DateTime aTime;          // aTime or bTime is the former ModificationTime
+        public DateTime bTime;
+        public DateTime cTime;
+        public long FileLength;         // always 0 for link or directory
+        public byte flag;               // 0 for link, 4 for directory, otherwise values unknown (4 3 1)
+        public byte PropertyCount;
+
+        public struct Property
+        {
+            public string Name;
+            public string Value;
+        };
+        public Property[] Properties;
     }
 }

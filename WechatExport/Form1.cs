@@ -16,7 +16,7 @@ namespace WechatExport
     public partial class Form1 : Form
     {
         private List<iPhoneBackup> backups = new List<iPhoneBackup>();
-        private List<mbdb.MBFileRecord> files92;
+        private List<MBFileRecord> files92;
         private iPhoneBackup currentBackup = null;
         private WeChatInterface wechat = null;
 
@@ -106,7 +106,7 @@ namespace WechatExport
                 }
                 else if (File.Exists(Path.Combine(backup.path, "Manifest.db")))
                 {
-                    // iOS 10 support
+                    files92 = v10db.ReadMBDB(Path.Combine(backup.path, "Manifest.db"));
                 }
                 if (files92 != null && files92.Count > 0)
                 {
@@ -281,7 +281,7 @@ namespace WechatExport
                         emojidown.UnionWith(_emojidown);
                     }
                 }
-
+                conn.Close();
                 var portraitdir = Path.Combine(userSaveBase, "Portrait");
                 Directory.CreateDirectory(portraitdir);
                 var downlist = new HashSet<DownloadTask>();
