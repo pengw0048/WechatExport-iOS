@@ -68,7 +68,7 @@ namespace WechatExport
                     if (dict.ContainsKey("UsrName") && dict.ContainsKey("NickName"))
                     {
                         friend.UsrName = objs[dict["UsrName"]] as string;
-                        friend.UsrName = objs[dict["NickName"]] as string;
+                        friend.NickName = objs[dict["NickName"]] as string;
                         succ = true;
                     }
                     if (dict.ContainsKey("AliasName"))
