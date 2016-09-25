@@ -8,6 +8,7 @@ using System.Linq;
 using System.Data.SQLite;
 using System.Text;
 using System.Diagnostics;
+using static WechatExport.Form1;
 
 namespace WechatExport
 {
@@ -486,6 +487,22 @@ namespace WechatExport
             return succ;
         }
 
+        public void MakeListHTML(List<DisplayItem> list, string path)
+        {
+            using(var sw=new StreamWriter(path))
+            {
+                sw.WriteLine(@"<!DOCTYPE html PUBLIC ""-//W3C//DTD XHTML 1.0 Transitional//EN"" ""http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"">");
+                sw.WriteLine(@"<html xmlns=""http://www.w3.org/1999/xhtml""><head><meta http-equiv=""Content-Type"" content=""text/html; charset=utf-8"" /><title>微信聊天记录</title></head>");
+                sw.WriteLine(@"<body><table width=""400"" border=""0"" style=""font-size:12px;border-collapse:separate;border-spacing:0px 20px;word-break:break-all;table-layout:fixed;word-wrap:break-word;"" align=""center"">");
+                foreach (var item in list)
+                {
+                    sw.Write(@"<tr><td width=""100"" align=""center""><img src=""" + item.pic + @""" style=""float:left;max-width:60px;max-height:60px"" /></td>");
+                    sw.WriteLine(@"<td><a href=""" + item.link + @""">" + item.text + @"</a></td></tr>");
+                }
+                sw.WriteLine(@"</body></html>");
+            }
+        }
+
         public string GetBackupFilePath(string vpath)
         {
             vpath = vpath.Replace('\\', '/');
@@ -710,7 +727,7 @@ namespace WechatExport
 
         public override int GetHashCode()
         {
-            return url.GetHashCode() * 1000000009 + filename.GetHashCode();
+            return url.GetHashCode() * 53 + filename.GetHashCode();
         }
     }
 

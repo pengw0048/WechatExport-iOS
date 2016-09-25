@@ -221,6 +221,7 @@ namespace WechatExport
             AddLog("查找UID");
             var UIDs = wechat.FindUIDs();
             AddLog("找到" + UIDs.Count + "个账号的消息记录");
+            var uidList = new List<DisplayItem>();
             foreach (var uid in UIDs)
             {
                 var userBase = Path.Combine("Documents", uid);
@@ -254,6 +255,7 @@ namespace WechatExport
                 wechat.GetChatSessions(conn, out chats);
                 AddLog("找到" + chats.Count + "个对话");
                 var emojidown = new HashSet<DownloadTask>();
+                var chatList = new List<DisplayItem>();
                 foreach (var chat in chats)
                 {
                     var hash = chat;
@@ -276,12 +278,17 @@ namespace WechatExport
                     {
                         int count;
                         HashSet<DownloadTask> _emojidown;
-                        if (wechat.SaveHtmlRecord(conn, userBase, userSaveBase, displayname, id, myself, chat, friend, friends, out count, out _emojidown)) AddLog("成功处理" + count + "条");
+                        if (wechat.SaveHtmlRecord(conn, userBase, userSaveBase, displayname, id, myself, chat, friend, friends, out count, out _emojidown))
+                        {
+                            AddLog("成功处理" + count + "条");
+                            chatList.Add(new DisplayItem() { pic = "Portrait/"+(friend!=null?friend.FindPortrait(): "DefaultProfileHead@2x.png"), text = displayname, link = id + ".html" });
+                        }
                         else AddLog("失败");
                         emojidown.UnionWith(_emojidown);
                     }
                 }
                 conn.Close();
+                if(radioButton3.Checked) wechat.MakeListHTML(chatList, Path.Combine(userSaveBase, "聊天记录.html"));
                 var portraitdir = Path.Combine(userSaveBase, "Portrait");
                 Directory.CreateDirectory(portraitdir);
                 var downlist = new HashSet<DownloadTask>();
@@ -316,18 +323,30 @@ namespace WechatExport
                                 downloader.AddTask(item.url, Path.Combine(emojidir, item.filename));
                         }
                 }
+                uidList.Add(new DisplayItem() { pic = myself.ID()+"/Portrait/"+myself.FindPortrait(), text = myself.DisplayName(), link = myself.ID() + "/聊天记录.html" });
                 downloader.StartDownload();
                 downloader.WaitToEnd();
                 AddLog("完成当前账号");
             }
+            if (radioButton3.Checked) wechat.MakeListHTML(uidList, Path.Combine(saveBase, "聊天记录.html"));
             AddLog("任务结束");
+            try
+            {
+                if (radioButton3.Checked) System.Diagnostics.Process.Start(Path.Combine(saveBase, "聊天记录.html"));
+            }
+            catch (Exception) { }
             groupBox1.Enabled = groupBox3.Enabled = groupBox4.Enabled = true;
             button2.Enabled = true;
             wechat = null;
             MessageBox.Show("处理完成");
         }
 
-
+        public class DisplayItem
+        {
+            public string pic;
+            public string text;
+            public string link;
+        }
 
         void AddLog(string str)
         {
