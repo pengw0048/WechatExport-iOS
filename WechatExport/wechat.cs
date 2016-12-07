@@ -8,7 +8,6 @@ using System.Linq;
 using System.Data.SQLite;
 using System.Text;
 using System.Diagnostics;
-using static WechatExport.Form1;
 
 namespace WechatExport
 {
@@ -487,7 +486,7 @@ namespace WechatExport
             return succ;
         }
 
-        public void MakeListHTML(List<DisplayItem> list, string path)
+        public void MakeListHTML(List<Form1.DisplayItem> list, string path)
         {
             using(var sw=new StreamWriter(path))
             {
