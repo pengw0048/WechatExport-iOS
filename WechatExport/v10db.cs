@@ -3,6 +3,7 @@ using System.Data.SQLite;
 using mbdbdump;
 using System;
 using System.IO;
+using System.Windows.Forms;
 
 namespace WechatExport
 {
@@ -36,8 +37,9 @@ namespace WechatExport
                 }
                 return files;
             }
-            catch (Exception)
+            catch (Exception e)
             {
+                MessageBox.Show(e.ToString());
                 return null;
             }
         }
