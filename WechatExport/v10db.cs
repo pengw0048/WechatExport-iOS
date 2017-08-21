@@ -7,7 +7,7 @@ using System.Windows.Forms;
 
 namespace WechatExport
 {
-    public static class v10db
+    public static class V10db
     {
         public static List<MBFileRecord> ReadMBDB(string BackupDB)
         {

@@ -12,9 +12,7 @@ namespace WechatExport
 {
     public partial class Form1 : Form
     {
-        private List<iPhoneBackup> backups = new List<iPhoneBackup>();
         private List<MBFileRecord> files92;
-        private iPhoneBackup currentBackup = null;
         private WeChatInterface wechat = null;
 
         public Form1()
@@ -25,7 +23,6 @@ namespace WechatExport
 
         private void LoadManifests()
         {
-            backups.Clear();
             comboBox1.Items.Clear();
             string s = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
             s = MyPath.Combine(s, "Apple Computer", "MobileSync", "Backup");
@@ -34,11 +31,7 @@ namespace WechatExport
                 DirectoryInfo d = new DirectoryInfo(s);
                 foreach (DirectoryInfo sd in d.GetDirectories())
                 {
-                    LoadManifest(sd.FullName);
-                }
-                foreach (iPhoneBackup b in backups)
-                {
-                    b.index = comboBox1.Items.Add(b);
+                    comboBox1.Items.Add(LoadManifest(sd.FullName));
                 }
             }
             catch (Exception)
@@ -48,17 +41,19 @@ namespace WechatExport
             comboBox1.Items.Add("<选择其他备份文件夹...>");
         }
 
-        private iPhoneBackup LoadManifest(string path)
+        private IPhoneBackup LoadManifest(string path)
         {
-            iPhoneBackup backup = null;
+            IPhoneBackup backup = null;
             string filename = Path.Combine(path, "Info.plist");
             try
             {
                 xdict dd = xdict.open(filename);
                 if (dd != null)
                 {
-                    backup = new iPhoneBackup();
-                    backup.path = path;
+                    backup = new IPhoneBackup
+                    {
+                        path = path
+                    };
                     foreach (xdictpair p in dd)
                     {
                         if (p.item.GetType() == typeof(string))
@@ -73,8 +68,6 @@ namespace WechatExport
                             }
                         }
                     }
-                    backups.Add(backup);
-                    backups.Sort(iPhoneBackup.SortByDate);
                 }
             }
             catch (InvalidOperationException ex)
@@ -88,22 +81,22 @@ namespace WechatExport
             return backup;
         }
 
-        private void loadCurrentBackup()
+        private void LoadCurrentBackup()
         {
-            if (currentBackup == null)
+            if (comboBox1.SelectedItem.GetType() != typeof(IPhoneBackup))
                 return;
+            var backup = (IPhoneBackup)comboBox1.SelectedItem;
 
             files92 = null;
             try
             {
-                iPhoneBackup backup = currentBackup;
                 if (File.Exists(Path.Combine(backup.path, "Manifest.mbdb")))
                 {
                     files92 = mbdbdump.mbdb.ReadMBDB(backup.path);
                 }
                 else if (File.Exists(Path.Combine(backup.path, "Manifest.db")))
                 {
-                    files92 = v10db.ReadMBDB(Path.Combine(backup.path, "Manifest.db"));
+                    files92 = V10db.ReadMBDB(Path.Combine(backup.path, "Manifest.db"));
                 }
                 if (files92 != null && files92.Count > 0)
                 {
@@ -113,7 +106,6 @@ namespace WechatExport
                 }
                 else
                 {
-                    currentBackup = null;
                     label2.Text = "未找到";
                     label2.ForeColor = Color.Red;
                     button2.Enabled = false;
@@ -129,18 +121,17 @@ namespace WechatExport
             }
         }
 
-        private void beforeLoadManifest()
+        private void BeforeLoadManifest()
         {
             comboBox1.SelectedIndex = -1;
-            currentBackup = null;
             label2.Text = "未选择";
             label2.ForeColor = Color.Black;
             button2.Enabled = false;
         }
 
-        private void button1_Click(object sender, EventArgs e)
+        private void Button1_Click(object sender, EventArgs e)
         {
-            beforeLoadManifest();
+            BeforeLoadManifest();
             LoadManifests();
         }
 
@@ -148,42 +139,39 @@ namespace WechatExport
         {
             this.ClientSize = new Size(groupBox2.Left * 2 + groupBox2.Width, groupBox2.Top + groupBox2.Height + groupBox1.Top);
             textBox1.Text = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-            button1_Click(null, null);
+            Button1_Click(null, null);
         }
 
-        private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
+        private void ComboBox1_SelectedIndexChanged(object sender, EventArgs e)
         {
 
             if (comboBox1.SelectedIndex == -1)
                 return;
-            if (comboBox1.SelectedItem.GetType() == typeof(iPhoneBackup))
+            if (comboBox1.SelectedItem.GetType() == typeof(IPhoneBackup))
             {
-                if (currentBackup == null || currentBackup.index != comboBox1.SelectedIndex)
-                {
-                    currentBackup = (iPhoneBackup)comboBox1.SelectedItem;
-                    loadCurrentBackup();
-                }
+                LoadCurrentBackup();
                 return;
             }
-            OpenFileDialog fd = new OpenFileDialog();
-            fd.Filter = "iPhone Backup|Info.plist|All files (*.*)|*.*";
-            fd.FilterIndex = 1;
-            fd.RestoreDirectory = true;
+            OpenFileDialog fd = new OpenFileDialog
+            {
+                Filter = "iPhone Backup|Info.plist|All files (*.*)|*.*",
+                FilterIndex = 1,
+                RestoreDirectory = true
+            };
             if (fd.ShowDialog() == DialogResult.OK)
             {
-                beforeLoadManifest();
-                iPhoneBackup b = LoadManifest(Path.GetDirectoryName(fd.FileName));
+                BeforeLoadManifest();
+                IPhoneBackup b = LoadManifest(Path.GetDirectoryName(fd.FileName));
                 if (b != null)
                 {
                     b.custom = true;
                     comboBox1.Items.Insert(comboBox1.Items.Count - 1, b);
-                    b.index = comboBox1.Items.Count - 2;
-                    comboBox1.SelectedIndex = b.index;
+                    comboBox1.SelectedIndex = comboBox1.Items.Count - 2;
                 }
             }
         }
 
-        private void radioButton1_CheckedChanged(object sender, EventArgs e)
+        private void RadioButton1_CheckedChanged(object sender, EventArgs e)
         {
             if (radioButton1.Checked)
             {
@@ -191,7 +179,7 @@ namespace WechatExport
             }
         }
 
-        private void button3_Click(object sender, EventArgs e)
+        private void Button3_Click(object sender, EventArgs e)
         {
             radioButton2.Checked = true;
             if (folderBrowserDialog1.ShowDialog() == DialogResult.OK)
@@ -200,20 +188,20 @@ namespace WechatExport
                 radioButton1.Checked = true;
         }
 
-        private void button2_Click(object sender, EventArgs e)
+        private void Button2_Click(object sender, EventArgs e)
         {
             listBox1.Items.Clear();
             groupBox1.Enabled = groupBox3.Enabled = groupBox4.Enabled = false;
             button2.Enabled = false;
-            new Thread(new ThreadStart(run)).Start();
+            new Thread(new ThreadStart(Run)).Start();
         }
 
-        void run()
+        void Run()
         {
             var saveBase = textBox1.Text;
             Directory.CreateDirectory(saveBase);
             AddLog("分析文件夹结构");
-            wechat = new WeChatInterface(currentBackup.path, files92);
+            wechat = new WeChatInterface(((IPhoneBackup)comboBox1.SelectedItem).path, files92);
             wechat.BuildFilesDictionary();
             AddLog("查找UID");
             var UIDs = wechat.FindUIDs();
@@ -224,32 +212,27 @@ namespace WechatExport
                 var userBase = Path.Combine("Documents", uid);
                 AddLog("开始处理UID: " + uid);
                 AddLog("读取账号信息");
-                Friend myself;
-                if (wechat.GetUserBasics(uid, userBase, out myself)) AddLog("微信号：" + myself.ID() + " 昵称：" + myself.DisplayName());
+                if (wechat.GetUserBasics(uid, userBase, out Friend myself)) AddLog("微信号：" + myself.ID() + " 昵称：" + myself.DisplayName());
                 else AddLog("没有找到本人信息，用默认值替代");
                 var userSaveBase = Path.Combine(saveBase, myself.ID());
                 Directory.CreateDirectory(userSaveBase);
                 AddLog("正在打开数据库");
-                SQLiteConnection conn, wcdb;
-                if (!wechat.OpenMMSqlite(userBase, out conn))
+                if (!wechat.OpenMMSqlite(userBase, out SQLiteConnection conn))
                 {
                     AddLog("打开MM.sqlite失败，跳过");
                     continue;
                 }
-                if (wechat.OpenWCDBContact(userBase, out wcdb))
+                if (wechat.OpenWCDBContact(userBase, out SQLiteConnection wcdb))
                     AddLog("存在WCDB，与旧版好友列表合并使用");
                 AddLog("读取好友列表");
-                Dictionary<string,Friend> friends;
-                int friendcount;
-                if(!wechat.GetFriendsDict(conn, wcdb, myself, out friends, out friendcount))
+                if (!wechat.GetFriendsDict(conn, wcdb, myself, out Dictionary<string, Friend> friends, out int friendcount))
                 {
                     AddLog("读取好友列表失败，跳过");
                     continue;
                 }
                 AddLog("找到" + friendcount + "个好友/聊天室");
                 AddLog("查找对话");
-                List<string> chats;
-                wechat.GetChatSessions(conn, out chats);
+                wechat.GetChatSessions(conn, out List<string> chats);
                 AddLog("找到" + chats.Count + "个对话");
                 var emojidown = new HashSet<DownloadTask>();
                 var chatList = new List<DisplayItem>();
@@ -268,17 +251,15 @@ namespace WechatExport
                     else AddLog("未找到好友信息，用默认名字代替");
                     if (radioButton4.Checked)
                     {
-                        int count;
-                        if (wechat.SaveTextRecord(conn, Path.Combine(userSaveBase, id + ".txt"), displayname, id, myself, chat, friend, friends, out count)) AddLog("成功处理" + count + "条");
+                        if (wechat.SaveTextRecord(conn, Path.Combine(userSaveBase, id + ".txt"), displayname, id, myself, chat, friend, friends, out int count)) AddLog("成功处理" + count + "条");
                         else AddLog("失败");
-                    }else if(radioButton3.Checked)
+                    }
+                    else if(radioButton3.Checked)
                     {
-                        int count;
-                        HashSet<DownloadTask> _emojidown;
-                        if (wechat.SaveHtmlRecord(conn, userBase, userSaveBase, displayname, id, myself, chat, friend, friends, out count, out _emojidown))
+                        if (wechat.SaveHtmlRecord(conn, userBase, userSaveBase, displayname, id, myself, chat, friend, friends, out int count, out HashSet<DownloadTask> _emojidown))
                         {
                             AddLog("成功处理" + count + "条");
-                            chatList.Add(new DisplayItem() { pic = "Portrait/"+(friend!=null?friend.FindPortrait(): "DefaultProfileHead@2x.png"), text = displayname, link = id + ".html" });
+                            chatList.Add(new DisplayItem() { pic = "Portrait/" + (friend != null ? friend.FindPortrait() : "DefaultProfileHead@2x.png"), text = displayname, link = id + ".html" });
                         }
                         else AddLog("失败");
                         emojidown.UnionWith(_emojidown);

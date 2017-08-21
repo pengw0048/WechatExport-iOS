@@ -28,8 +28,10 @@ namespace WechatExport
             conn = null;
             try
             {
-                conn = new SQLiteConnection();
-                conn.ConnectionString = "data source=" + GetBackupFilePath(MyPath.Combine(userBase, "DB", "MM.sqlite")) + ";version=3";
+                conn = new SQLiteConnection
+                {
+                    ConnectionString = "data source=" + GetBackupFilePath(MyPath.Combine(userBase, "DB", "MM.sqlite")) + ";version=3"
+                };
                 conn.Open();
                 succ = true;
             }
@@ -43,8 +45,10 @@ namespace WechatExport
             conn = null;
             try
             {
-                conn = new SQLiteConnection();
-                conn.ConnectionString = "data source=" + GetBackupFilePath(MyPath.Combine(userBase, "DB", "WCDB_Contact.sqlite")) + ";version=3";
+                conn = new SQLiteConnection
+                {
+                    ConnectionString = "data source=" + GetBackupFilePath(MyPath.Combine(userBase, "DB", "WCDB_Contact.sqlite")) + ";version=3"
+                };
                 conn.Open();
                 succ = true;
             }
@@ -106,8 +110,10 @@ namespace WechatExport
         public bool GetFriends(SQLiteConnection conn, Friend myself, out List<Friend> friends)
         {
             bool succ = false;
-            friends = new List<Friend>();
-            friends.Add(myself);
+            friends = new List<Friend>
+            {
+                myself
+            };
             try
             {
                 using (var cmd = new SQLiteCommand(conn))
@@ -118,12 +124,14 @@ namespace WechatExport
                         while (reader.Read())
                             try
                             {
-                                var friend = new Friend();
-                                friend.UsrName = reader.GetString(0);
-                                friend.NickName = reader.GetString(1);
-                                friend.ConRemark = reader.GetString(2);
-                                friend.ConChatRoomMem = reader.GetString(3);
-                                friend.ConStrRes2 = reader.GetString(4);
+                                var friend = new Friend
+                                {
+                                    UsrName = reader.GetString(0),
+                                    NickName = reader.GetString(1),
+                                    ConRemark = reader.GetString(2),
+                                    ConChatRoomMem = reader.GetString(3),
+                                    ConStrRes2 = reader.GetString(4)
+                                };
                                 friend.ProcessConStrRes2();
                                 friends.Add(friend);
                             }
@@ -185,12 +193,11 @@ namespace WechatExport
         public bool GetFriendsDict(SQLiteConnection conn, SQLiteConnection wcdb, Friend myself, out Dictionary<string,Friend> friends, out int count)
         {
             count = 0;
-            List<Friend> _friends,_friends2;
             friends = new Dictionary<string, Friend>();
-            bool succ = GetFriends(conn, myself, out _friends);
+            bool succ = GetFriends(conn, myself, out List<Friend> _friends);
             if (wcdb != null)
             {
-                succ |= GetWCDBFriends(wcdb, out _friends2);
+                succ |= GetWCDBFriends(wcdb, out List<Friend> _friends2);
                 _friends.AddRange(_friends2);
             }
             if (succ)

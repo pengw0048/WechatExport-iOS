@@ -1,13 +1,8 @@
 ﻿using System;
 
-
 namespace iphonebackupbrowser
 {
-
-    //
-    // backup information retrieved from Info.plist
-    //
-    class iPhoneBackup
+    class IPhoneBackup
     {
         public string DeviceName;
         public string DisplayName;
@@ -23,12 +18,5 @@ namespace iphonebackupbrowser
         }
 
         public bool custom = false;         // backup loaded from a custom directory
-        public int index;                   // index in the combobox control
-
-        // delegate to sort backups (newer first)
-        public static int SortByDate(iPhoneBackup a, iPhoneBackup b)
-        {
-            return b.LastBackupDate.CompareTo(a.LastBackupDate);
-        }
     }
 }
