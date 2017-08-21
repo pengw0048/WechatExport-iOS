@@ -7,9 +7,6 @@ using mbdbdump;
 using System.Drawing;
 using System.Threading;
 using System.Data.SQLite;
-using System.Net;
-using System.Web;
-using Microsoft.VisualBasic;
 
 namespace WechatExport
 {
@@ -358,29 +355,5 @@ namespace WechatExport
         {
             Environment.Exit(0);
         }
-        public void PostLog(string msg)
-        {
-            button4.Enabled = false;
-            new Thread(new ParameterizedThreadStart(DoPostLog)).Start(msg);
-        }
-        public void DoPostLog(object msg)
-        {
-            try
-            {
-                using(var wc=new WebClient())
-                wc.DownloadString("http://web.tiancaihb.me/logs.php?prod=wcexport&msg=" + HttpUtility.UrlEncode((string)msg));
-                MessageBox.Show("反馈成功");
-            }
-            catch (Exception e) { MessageBox.Show("上传失败，原因：" + e.Message); }
-            button4.Enabled = true;
-        }
-
-        private void button4_Click(object sender, EventArgs e)
-        {
-            var msg = Interaction.InputBox("请填写遇到的问题，如果需要反馈，可留下联系方式。");
-            if (msg == null || msg == "") return;
-            PostLog(msg);
-        }
-
     }
 }
