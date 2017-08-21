@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio 15
+VisualStudioVersion = 15.0.26730.8
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WechatExport", "WechatExport\WechatExport.csproj", "{CBB5A717-8BE6-43EE-97C3-1C6442591709}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IPhoneBackupReader", "IPhoneBackupReader\IPhoneBackupReader.csproj", "{D8C690DF-51BA-4893-8A08-15AF97464946}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,8 +17,15 @@ Global
 		{CBB5A717-8BE6-43EE-97C3-1C6442591709}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CBB5A717-8BE6-43EE-97C3-1C6442591709}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CBB5A717-8BE6-43EE-97C3-1C6442591709}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D8C690DF-51BA-4893-8A08-15AF97464946}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D8C690DF-51BA-4893-8A08-15AF97464946}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D8C690DF-51BA-4893-8A08-15AF97464946}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D8C690DF-51BA-4893-8A08-15AF97464946}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {E013C296-5F0B-4807-91AE-2548F61DAD53}
 	EndGlobalSection
 EndGlobal

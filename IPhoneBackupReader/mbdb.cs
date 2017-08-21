@@ -85,7 +85,7 @@ namespace mbdbdump
     #endregion
 
 
-    class mbdb
+    public class mbdb
     {
         private static string getS(Stream fs)
         {
