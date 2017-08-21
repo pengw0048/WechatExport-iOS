@@ -306,7 +306,7 @@ namespace WechatExport
                     }
                     try
                     {
-                        File.Copy("DefaultProfileHead@2x.png", Path.Combine(portraitdir, "DefaultProfileHead@2x.png"));
+                        File.Copy("res\\DefaultProfileHead@2x.png", Path.Combine(portraitdir, "DefaultProfileHead@2x.png"));
                     }
                     catch (Exception) { }
                 }

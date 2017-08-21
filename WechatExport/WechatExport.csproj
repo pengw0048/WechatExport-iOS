@@ -64,8 +64,9 @@
       <HintPath>..\packages\System.Data.SQLite.Linq.1.0.105.2\lib\net45\System.Data.SQLite.Linq.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="System.Runtime.Serialization.Plists">
-      <HintPath>..\System.Runtime.Serialization.Plists.dll</HintPath>
+    <Reference Include="System.Runtime.Serialization.Plists, Version=1.3.0.2, Culture=neutral, PublicKeyToken=721d4f12726eb029, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>lib\System.Runtime.Serialization.Plists.dll</HintPath>
     </Reference>
     <Reference Include="System.Web" />
     <Reference Include="System.Xml.Linq" />
@@ -122,13 +123,16 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="DefaultProfileHead%402x.png">
+    <Content Include="lib\lame.exe">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="lame.exe">
+    <Content Include="lib\silk_v3_decoder.exe">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="silk_v3_decoder.exe">
+    <Content Include="lib\System.Runtime.Serialization.Plists.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="res\DefaultProfileHead%402x.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

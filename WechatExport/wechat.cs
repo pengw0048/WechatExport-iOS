@@ -2,12 +2,12 @@
 using System.Collections.Generic;
 using System.IO;
 using mbdbdump;
-using System.Runtime.Serialization.Plists;
 using System.Text.RegularExpressions;
 using System.Linq;
 using System.Data.SQLite;
 using System.Text;
 using System.Diagnostics;
+using System.Runtime.Serialization.Plists;
 
 namespace WechatExport
 {
@@ -388,8 +388,8 @@ namespace WechatExport
                                         }
                                         else
                                         {
-                                            ShellWait("silk_v3_decoder.exe", "\"" + audiosrc + "\" 1.pcm");
-                                            ShellWait("lame.exe", "-r -s 24000 --preset voice 1.pcm \"" + Path.Combine(assetsdir, msgid + ".mp3") + "\"");
+                                            ShellWait("lib\\silk_v3_decoder.exe", "\"" + audiosrc + "\" 1.pcm");
+                                            ShellWait("lib\\lame.exe", "-r -s 24000 --preset voice 1.pcm \"" + Path.Combine(assetsdir, msgid + ".mp3") + "\"");
                                             message = "<audio controls><source src=\"" + id + "_files/" + msgid + ".mp3\" type=\"audio/mpeg\"><a href=\"" + id + "_files/" + msgid + ".mp3\">播放</a></audio>";
                                         }
                                     }
