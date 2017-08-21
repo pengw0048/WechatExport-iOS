@@ -6,3 +6,8 @@ The only open-source one-click application that parses the local database of Wec
 ---
 
 将iOS上微信的聊天记录导出为包括图片和语音的HTML，或纯文本。
+
+---
+
+Download latest stable binary here: 在这里下载最新的打包好的程序：
+https://github.com/tiancaihb/WechatExport-iOS/releases/latest
