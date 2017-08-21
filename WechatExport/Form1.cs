@@ -92,11 +92,11 @@ namespace WechatExport
             {
                 if (File.Exists(Path.Combine(backup.path, "Manifest.mbdb")))
                 {
-                    files92 = mbdbdump.mbdb.ReadMBDB(backup.path);
+                    files92 = mbdbdump.mbdb.ReadMBDB(backup.path, "com.tencent.xin");
                 }
                 else if (File.Exists(Path.Combine(backup.path, "Manifest.db")))
                 {
-                    files92 = V10db.ReadMBDB(Path.Combine(backup.path, "Manifest.db"));
+                    files92 = V10db.ReadMBDB(Path.Combine(backup.path, "Manifest.db"), "com.tencent.xin");
                 }
                 if (files92 != null && files92.Count > 0)
                 {

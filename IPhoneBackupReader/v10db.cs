@@ -8,7 +8,7 @@ namespace WechatExport
 {
     public static class V10db
     {
-        public static List<MBFileRecord> ReadMBDB(string BackupDB)
+        public static List<MBFileRecord> ReadMBDB(string BackupDB, string Domain)
         {
             try
             {
@@ -19,7 +19,7 @@ namespace WechatExport
                     conn.Open();
                     using (var cmd = new SQLiteCommand(conn))
                     {
-                        cmd.CommandText = "SELECT fileID,relativePath FROM Files WHERE domain='AppDomain-com.tencent.xin'";
+                        cmd.CommandText = "SELECT fileID,relativePath FROM Files WHERE domain='AppDomain-" + Domain + "'";
                         using (var reader = cmd.ExecuteReader())
                             while (reader.Read())
                             {

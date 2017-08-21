@@ -204,7 +204,7 @@ namespace mbdbdump
 
 
 
-        public static List<MBFileRecord> ReadMBDB(string BackupPath)
+        public static List<MBFileRecord> ReadMBDB(string BackupPath, string Domain)
         {
             try
             {
@@ -276,7 +276,7 @@ namespace mbdbdump
 
                     rec.key = fileName.ToString();
 
-                    if(rec.Domain.EndsWith("com.tencent.xin") && (rec.Mode & 0xF000) == 0x8000) files.Add(rec);
+                    if(rec.Domain.Contains(Domain) && (rec.Mode & 0xF000) == 0x8000) files.Add(rec);
                 }
 
                 return files;
