@@ -349,7 +349,7 @@ namespace WechatExport
                                 }
                                 if (type == 34) message = "[语音]";
                                 else if (type == 47) message = "[表情]";
-                                else if (type == 62) message = "[小视频]";
+                                else if (type == 62 || type == 43) message = "[小视频]";
                                 else if (type == 50) message = "[视频/语音通话]";
                                 else if (type == 3) message = "[图片]";
                                 else if (type == 48) message = "[位置]";
@@ -476,7 +476,7 @@ namespace WechatExport
                                         }
                                         else message = "[表情]";
                                     }
-                                    else if (type == 62)
+                                    else if (type == 62 || type == 43)
                                     {
                                         var hasthum = RequireResource(MyPath.Combine(userBase, "Video", table, msgid + ".video_thum"), Path.Combine(assetsdir, msgid + "_thum.jpg"));
                                         var hasvid = RequireResource(MyPath.Combine(userBase, "Video", table, msgid + ".mp4"), Path.Combine(assetsdir, msgid + ".mp4"));
@@ -508,7 +508,21 @@ namespace WechatExport
                                         if (message.Contains("<type>2001<")) message = "[红包]";
                                         else if (message.Contains("<type>2000<")) message = "[转账]";
                                         else if (message.Contains("<type>17<")) message = "[实时位置共享]";
-                                        else if (message.Contains("<type>6<")) message = "[文件]";
+                                        else if (message.Contains("<type>6<"))
+                                        {
+                                            var match1 = Regex.Match(message, @"<fileext>(.+?)<\/fileext>");
+                                            var match2 = Regex.Match(message, @"<title>(.+?)<\/title>");
+                                            if (match1.Success && match2.Success)
+                                            {
+                                                var hasfile = RequireResource(MyPath.Combine(userBase, "OpenData", table, msgid + "." + match1.Groups[1].Value), Path.Combine(assetsdir, match2.Groups[1].Value));
+                                                if (hasfile) message = "<a href=\"" + id + "_files/" + match2.Groups[1].Value + "\">" + match2.Groups[1].Value + "</a>";
+                                                else message = match2.Groups[1].Value + "(文件丢失)";
+                                            }
+                                            else
+                                            {
+                                                message = "[文件]";
+                                            }
+                                        }
                                         else
                                         {
                                             var match1 = Regex.Match(message, @"<title>(.+?)<\/title>");
