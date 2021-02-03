@@ -56,6 +56,24 @@ namespace WechatExport
             return succ;
         }
 
+
+        public bool OpenMessageSqlite(string userBase, out SQLiteConnection conn)
+        {
+            bool succ = false;
+            conn = null;
+            try
+            {
+                conn = new SQLiteConnection
+                {
+                    ConnectionString = "data source=" + GetBackupFilePath(MyPath.Combine(userBase, "DB", "WCDB_Contact.sqlite")) + ";version=3"
+                };
+                conn.Open();
+                succ = true;
+            }
+            catch (Exception) { }
+            return succ;
+        }
+
         public bool GetUserBasics(string uid, string userBase, out Friend friend)
         {
             friend = new Friend() { UsrName = uid, NickName = "我", alias = null, PortraitRequired=true };
@@ -242,6 +260,50 @@ namespace WechatExport
             }
             catch (Exception) { }
             return succ;
+        }
+
+        public int GetChatSessions(SQLiteConnection conn, string userBase, out Dictionary<SQLiteConnection, List<string>> sessions)
+        {
+            sessions = new Dictionary<SQLiteConnection, List<string>>();
+            if (!GetChatSessions(conn, out List<string> chats))
+            {
+                return 0;
+            }
+            sessions.Add(conn, chats);
+
+            int i = 0, count = chats.Count;
+            while (true)
+            {
+                i++;
+                string msgfilename = GetBackupFilePath(MyPath.Combine(userBase, "DB", "message_" + i + ".sqlite"));
+                if (!File.Exists(msgfilename))
+                {
+                    break;
+                }
+
+                SQLiteConnection msgconn;
+                try
+                {
+                    msgconn = new SQLiteConnection
+                    {
+                        ConnectionString = "data source=" + msgfilename + ";version=3"
+                    };
+                    msgconn.Open();
+                }
+                catch (Exception e)
+                {
+                    System.Console.Out.Write(e);
+                    return -1;
+                }
+
+                if (!GetChatSessions(msgconn, out chats))
+                {
+                    return -1;
+                }
+                count += chats.Count;
+                sessions.Add(msgconn, chats);
+            }
+            return count;
         }
 
         public bool SaveTextRecord(SQLiteConnection conn, string path, string displayname, string id, Friend myself, string table, Friend friend, Dictionary<string, Friend> friends, out int count)
