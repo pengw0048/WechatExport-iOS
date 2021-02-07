@@ -24,8 +24,8 @@ namespace WechatExport
         private void LoadManifests()
         {
             comboBox1.Items.Clear();
-            string s = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            s = MyPath.Combine(s, "Apple Computer", "MobileSync", "Backup");
+            string s = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            s = MyPath.Combine(s, "Apple", "MobileSync", "Backup");
             try
             {
                 DirectoryInfo d = new DirectoryInfo(s);
@@ -232,40 +232,45 @@ namespace WechatExport
                 }
                 AddLog("找到" + friendcount + "个好友/聊天室");
                 AddLog("查找对话");
-                wechat.GetChatSessions(conn, out List<string> chats);
-                AddLog("找到" + chats.Count + "个对话");
+                var count = wechat.GetChatSessions(conn, userBase, out Dictionary<SQLiteConnection, List<string>> chats);
+                AddLog("找到" + count + "个对话");
                 var emojidown = new HashSet<DownloadTask>();
                 var chatList = new List<DisplayItem>();
-                foreach (var chat in chats)
+                foreach (var pair in chats)
                 {
-                    var hash = chat;
-                    string displayname = chat, id = displayname;
-                    Friend friend = null;
-                    if (friends.ContainsKey(hash))
+                    var c = pair.Key;
+                    foreach (var chat in pair.Value)
                     {
-                        friend = friends[hash];
-                        displayname = friend.DisplayName();
-                        AddLog("处理与" + displayname + "的对话");
-                        id = friend.ID();
-                    }
-                    else AddLog("未找到好友信息，用默认名字代替");
-                    if (radioButton4.Checked)
-                    {
-                        if (wechat.SaveTextRecord(conn, Path.Combine(userSaveBase, id + ".txt"), displayname, id, myself, chat, friend, friends, out int count)) AddLog("成功处理" + count + "条");
-                        else AddLog("失败");
-                    }
-                    else if(radioButton3.Checked)
-                    {
-                        if (wechat.SaveHtmlRecord(conn, userBase, userSaveBase, displayname, id, myself, chat, friend, friends, out int count, out HashSet<DownloadTask> _emojidown))
+                        var hash = chat;
+                        string displayname = chat, id = displayname;
+                        Friend friend = null;
+                        if (friends.ContainsKey(hash))
                         {
-                            AddLog("成功处理" + count + "条");
-                            chatList.Add(new DisplayItem() { pic = "Portrait/" + (friend != null ? friend.FindPortrait() : "DefaultProfileHead@2x.png"), text = displayname, link = id + ".html" });
+                            friend = friends[hash];
+                            displayname = friend.DisplayName();
+                            AddLog("处理与" + displayname + "的对话");
+                            id = friend.ID();
                         }
-                        else AddLog("失败");
-                        emojidown.UnionWith(_emojidown);
+                        else AddLog("未找到好友信息，用默认名字代替");
+                        if (radioButton4.Checked)
+                        {
+                            if (wechat.SaveTextRecord(c, Path.Combine(userSaveBase, id + ".txt"), displayname, id, myself, chat, friend, friends, out int msgcnt)) AddLog("成功处理" + msgcnt + "条");
+                            else AddLog("失败");
+                        }
+                        else if (radioButton3.Checked)
+                        {
+                            if (wechat.SaveHtmlRecord(c, userBase, userSaveBase, displayname, id, myself, chat, friend, friends, out int msgcnt, out HashSet<DownloadTask> _emojidown))
+                            {
+                                AddLog("成功处理" + msgcnt + "条");
+                                chatList.Add(new DisplayItem() { pic = "Portrait/" + (friend != null ? friend.FindPortrait() : "DefaultProfileHead@2x.png"), text = displayname, link = id + ".html" });
+                            }
+                            else AddLog("失败");
+                            emojidown.UnionWith(_emojidown);
+                        }
                     }
+
+                    c.Close();
                 }
-                conn.Close();
                 if(radioButton3.Checked) wechat.MakeListHTML(chatList, Path.Combine(userSaveBase, "聊天记录.html"));
                 var portraitdir = Path.Combine(userSaveBase, "Portrait");
                 Directory.CreateDirectory(portraitdir);
